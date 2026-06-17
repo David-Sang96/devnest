@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   generatePassword,
   calcEntropy,
@@ -19,7 +19,11 @@ const DEFAULT_OPTIONS: PasswordOptions = {
 
 export function usePasswordGenerator() {
   const [options, setOptions] = useState<PasswordOptions>(DEFAULT_OPTIONS);
-  const [password, setPassword] = useState(() => generatePassword(DEFAULT_OPTIONS));
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    setPassword(generatePassword(DEFAULT_OPTIONS));
+  }, []);
 
   const entropy = useMemo(() => calcEntropy(options), [options]);
   const strength: StrengthLevel = useMemo(() => getStrength(entropy), [entropy]);
