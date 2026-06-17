@@ -18,10 +18,18 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { Plus, ChevronDown } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { KanbanBoard, KanbanColumn, KanbanCard } from "@/types/kanban";
 import { KanbanColumnItem } from "./kanban-column";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface KanbanBoardProps {
   board: KanbanBoard;
@@ -259,29 +267,100 @@ interface BoardTabProps {
   board: KanbanBoard;
   active: boolean;
   onClick: () => void;
+  onRename: (title: string) => void;
+  onDelete: () => void;
 }
 
-export function BoardTab({ board, active, onClick }: BoardTabProps) {
+export function BoardTab({ board, active, onClick, onRename, onDelete }: BoardTabProps) {
+  const [editing, setEditing] = useState(false);
+  const [titleValue, setTitleValue] = useState(board.title);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function commitRename() {
+    const trimmed = titleValue.trim();
+    if (trimmed && trimmed !== board.title) onRename(trimmed);
+    else setTitleValue(board.title);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={titleValue}
+        onChange={(e) => setTitleValue(e.target.value)}
+        onBlur={commitRename}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commitRename();
+          if (e.key === "Escape") { setTitleValue(board.title); setEditing(false); }
+        }}
+        className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      />
+    );
+  }
+
   return (
-    <motion.button
-      layout
-      onClick={onClick}
-      className={cn(
-        "relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-        active
-          ? "text-primary-foreground"
-          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-      )}
-    >
-      {active && (
-        <motion.div
-          layoutId="board-tab-bg"
-          className="absolute inset-0 bg-primary rounded-md"
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        />
-      )}
-      <span className="relative z-10">{board.title}</span>
-    </motion.button>
+    <>
+      <motion.div layout className="group relative flex items-center">
+        <motion.button
+          layout
+          onClick={onClick}
+          onDoubleClick={() => { setTitleValue(board.title); setEditing(true); }}
+          className={cn(
+            "relative py-1.5 pl-3 pr-7 text-sm font-medium rounded-md transition-colors",
+            active
+              ? "text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+          )}
+        >
+          {active && (
+            <motion.div
+              layoutId="board-tab-bg"
+              className="absolute inset-0 bg-primary rounded-md"
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10">{board.title}</span>
+        </motion.button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+          className={cn(
+            "absolute right-1 z-20 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
+            active
+              ? "text-primary-foreground/70 hover:text-primary-foreground"
+              : "text-muted-foreground hover:text-destructive"
+          )}
+          aria-label="Delete board"
+        >
+          <X className="size-3" />
+        </button>
+      </motion.div>
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete &ldquo;{board.title}&rdquo;?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            All columns and cards will be permanently deleted.
+          </p>
+          <DialogFooter>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-md px-4 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setConfirmDelete(false); onDelete(); }}
+              className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
+            >
+              Delete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -302,57 +381,45 @@ export function CreateBoardButton({ onCreate }: CreateBoardButtonProps) {
   }
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((p) => !p)}
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setValue(""); }}>
+      <DialogTrigger
         className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
         aria-label="Create board"
       >
         <Plus className="size-4" />
-        <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
-      </button>
+        <span className="text-xs">New board</span>
+      </DialogTrigger>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-            transition={{ duration: 0.12 }}
-            className="absolute left-0 top-full mt-1 z-20 w-52 rounded-lg border border-border bg-popover p-3 shadow-md"
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>New board</DialogTitle>
+        </DialogHeader>
+
+        <input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+          }}
+          placeholder="Board name..."
+          className={cn(
+            "w-full rounded-md border border-border bg-background px-3 py-2",
+            "text-sm text-foreground placeholder:text-muted-foreground",
+            "focus:outline-none focus:ring-2 focus:ring-ring"
+          )}
+        />
+
+        <DialogFooter>
+          <button
+            onClick={submit}
+            disabled={!value.trim()}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <input
-              autoFocus
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submit();
-                if (e.key === "Escape") { setValue(""); setOpen(false); }
-              }}
-              placeholder="Board name..."
-              className={cn(
-                "w-full rounded-md border border-border bg-background px-3 py-1.5",
-                "text-sm text-foreground placeholder:text-muted-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring"
-              )}
-            />
-            <div className="mt-2 flex gap-1.5">
-              <button
-                onClick={submit}
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Create
-              </button>
-              <button
-                onClick={() => { setValue(""); setOpen(false); }}
-                className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            Create
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

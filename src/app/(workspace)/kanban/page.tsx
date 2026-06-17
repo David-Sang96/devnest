@@ -17,6 +17,14 @@ export default function KanbanPage() {
   const activeBoard =
     kanban.boards.find((b) => b.id === activeBoardId) ?? kanban.boards[0] ?? null;
 
+  function handleDeleteBoard(id: string) {
+    const remaining = kanban.boards.filter((b) => b.id !== id);
+    if (activeBoardId === id || activeBoardId === null) {
+      setActiveBoardId(remaining[0]?.id ?? null);
+    }
+    kanban.removeBoard(id);
+  }
+
   if (kanban.boards.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
@@ -61,7 +69,7 @@ export default function KanbanPage() {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="flex items-center gap-1 border-b border-border px-4 py-2"
+        className="flex items-center gap-1 border-b border-border px-4 py-2 overflow-x-auto"
       >
         {kanban.boards.map((board) => (
           <BoardTab
@@ -69,6 +77,8 @@ export default function KanbanPage() {
             board={board}
             active={(activeBoard?.id ?? null) === board.id}
             onClick={() => setActiveBoardId(board.id)}
+            onRename={(title) => kanban.updateBoard(board.id, { title })}
+            onDelete={() => handleDeleteBoard(board.id)}
           />
         ))}
         <CreateBoardButton

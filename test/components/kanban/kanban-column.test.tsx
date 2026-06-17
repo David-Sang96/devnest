@@ -1,0 +1,91 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { KanbanColumnItem } from "@/components/kanban/kanban-column";
+import type { KanbanColumn, KanbanCard } from "@/types/kanban";
+
+function makeColumn(overrides: Partial<KanbanColumn> = {}): KanbanColumn {
+  return {
+    id: "col1",
+    boardId: "b1",
+    title: "To Do",
+    cardOrder: [],
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides,
+  };
+}
+
+const defaultProps = {
+  column: makeColumn(),
+  cards: [] as KanbanCard[],
+  onAddCard: vi.fn(),
+  onRemoveCard: vi.fn(),
+  onRemoveColumn: vi.fn(),
+  onRenameColumn: vi.fn(),
+};
+
+describe("<KanbanColumnItem />", () => {
+  it("renders column title", () => {
+    render(<KanbanColumnItem {...defaultProps} />);
+    expect(screen.getByText("To Do")).toBeInTheDocument();
+  });
+
+  it("shows card count", () => {
+    const cards: KanbanCard[] = [
+      { id: "c1", columnId: "col1", boardId: "b1", title: "Card A", description: "", createdAt: 1, updatedAt: 1 },
+    ];
+    render(<KanbanColumnItem {...defaultProps} cards={cards} column={makeColumn({ cardOrder: ["c1"] })} />);
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
+
+  it("shows pencil and trash buttons in normal mode", () => {
+    render(<KanbanColumnItem {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /rename column/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /delete column/i })).toBeInTheDocument();
+  });
+
+  describe("edit mode (no overlap fix)", () => {
+    it("clicking pencil shows input and hides pencil + trash", async () => {
+      render(<KanbanColumnItem {...defaultProps} />);
+      await userEvent.click(screen.getByRole("button", { name: /rename column/i }));
+      expect(screen.getByRole("textbox")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /rename column/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /delete column/i })).not.toBeInTheDocument();
+    });
+
+    it("Enter commits rename and calls onRenameColumn", async () => {
+      const onRenameColumn = vi.fn();
+      render(<KanbanColumnItem {...defaultProps} onRenameColumn={onRenameColumn} />);
+      await userEvent.click(screen.getByRole("button", { name: /rename column/i }));
+      const input = screen.getByRole("textbox");
+      await userEvent.clear(input);
+      await userEvent.type(input, "In Progress{Enter}");
+      expect(onRenameColumn).toHaveBeenCalledWith("col1", "In Progress");
+    });
+
+    it("Escape cancels edit without calling onRenameColumn", async () => {
+      const onRenameColumn = vi.fn();
+      render(<KanbanColumnItem {...defaultProps} onRenameColumn={onRenameColumn} />);
+      await userEvent.click(screen.getByRole("button", { name: /rename column/i }));
+      await userEvent.type(screen.getByRole("textbox"), " extra{Escape}");
+      expect(onRenameColumn).not.toHaveBeenCalled();
+      expect(screen.getByText("To Do")).toBeInTheDocument();
+    });
+
+    it("restores pencil and trash after committing", async () => {
+      render(<KanbanColumnItem {...defaultProps} />);
+      await userEvent.click(screen.getByRole("button", { name: /rename column/i }));
+      await userEvent.keyboard("{Enter}");
+      expect(screen.getByRole("button", { name: /rename column/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /delete column/i })).toBeInTheDocument();
+    });
+  });
+
+  it("calls onRemoveColumn with column and board id when trash clicked", async () => {
+    const onRemoveColumn = vi.fn();
+    render(<KanbanColumnItem {...defaultProps} onRemoveColumn={onRemoveColumn} />);
+    await userEvent.click(screen.getByRole("button", { name: /delete column/i }));
+    expect(onRemoveColumn).toHaveBeenCalledWith("col1", "b1");
+  });
+});

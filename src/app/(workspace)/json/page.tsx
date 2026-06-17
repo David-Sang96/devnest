@@ -81,18 +81,18 @@ export default function JsonPage() {
   ];
 
   return (
-    <div className="flex h-full flex-col gap-4 p-6">
+    <div className="flex flex-col gap-4 p-4 md:p-6 md:h-full">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="flex items-center justify-between"
+        className="flex items-center justify-between gap-2"
       >
-        <h1 className="text-lg font-semibold text-foreground">JSON Formatter</h1>
+        <h1 className="text-lg font-semibold text-foreground shrink-0">JSON Formatter</h1>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {actions.map(({ label, icon: Icon, onClick, disabled, primary }, i) => (
             <motion.button
               key={label}
@@ -103,7 +103,7 @@ export default function JsonPage() {
               onClick={onClick}
               disabled={disabled}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
                 primary
                   ? "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
                   : "border border-border text-foreground hover:bg-accent disabled:opacity-40",
@@ -119,8 +119,8 @@ export default function JsonPage() {
                   transition={{ duration: 0.1 }}
                   className="flex items-center gap-1.5"
                 >
-                  <Icon className="size-3.5" />
-                  {label}
+                  <Icon className="size-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{label}</span>
                 </motion.span>
               </AnimatePresence>
             </motion.button>
@@ -131,8 +131,8 @@ export default function JsonPage() {
       {/* Error banner */}
       <JsonErrorBanner error={error} />
 
-      {/* Split panels */}
-      <div className="flex flex-1 gap-4 min-h-0">
+      {/* Split panels — stacked on mobile, side-by-side on desktop */}
+      <div className="flex flex-col md:flex-row flex-1 gap-4 md:min-h-0">
         <JsonInput value={input} onChange={setInput} />
         <JsonOutput value={output} />
       </div>

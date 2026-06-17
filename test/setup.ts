@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { vi } from "vitest";
 
 // navigator.clipboard is not implemented in jsdom
 Object.defineProperty(navigator, "clipboard", {

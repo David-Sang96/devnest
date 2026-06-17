@@ -16,7 +16,7 @@ interface Props {
 
 export function NoteList({ notes, selectedId, onSelect, onNew, onDelete }: Props) {
   return (
-    <div className="w-64 flex flex-col border-r border-border h-full shrink-0">
+    <div className="flex flex-col border-r border-border h-full w-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <span className="text-sm font-semibold text-foreground">Notes</span>
         <Button

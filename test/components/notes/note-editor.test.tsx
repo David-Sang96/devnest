@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NoteEditor } from "@/components/notes/note-editor";
 import type { Note } from "@/types/notes";
 
@@ -105,5 +106,24 @@ describe("<NoteEditor />", () => {
   it("renders a placeholder when the textarea is empty", () => {
     render(<NoteEditor note={makeNote({ content: "" })} onUpdate={vi.fn()} />);
     expect(screen.getByPlaceholderText("Start writing...")).toBeInTheDocument();
+  });
+
+  describe("onBack prop", () => {
+    it("renders back button when onBack is provided", () => {
+      render(<NoteEditor note={makeNote()} onUpdate={vi.fn()} onBack={vi.fn()} />);
+      expect(screen.getByRole("button", { name: /back to notes list/i })).toBeInTheDocument();
+    });
+
+    it("does not render back button when onBack is omitted", () => {
+      render(<NoteEditor note={makeNote()} onUpdate={vi.fn()} />);
+      expect(screen.queryByRole("button", { name: /back to notes list list/i })).not.toBeInTheDocument();
+    });
+
+    it("calls onBack when back button is clicked", () => {
+      const onBack = vi.fn();
+      render(<NoteEditor note={makeNote()} onUpdate={vi.fn()} onBack={onBack} />);
+      fireEvent.click(screen.getByRole("button", { name: /back to notes list/i }));
+      expect(onBack).toHaveBeenCalledOnce();
+    });
   });
 });

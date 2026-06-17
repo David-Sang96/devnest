@@ -104,48 +104,50 @@ export function KanbanColumnItem({
         </button>
 
         {editing ? (
-          <div className="flex flex-1 items-center gap-1">
+          <div className="flex flex-1 items-center gap-1 min-w-0">
             <input
               autoFocus
               value={titleValue}
               onChange={(e) => setTitleValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 rounded border border-border bg-background px-2 py-0.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="flex-1 min-w-0 rounded border border-border bg-background px-2 py-0.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <button onClick={commitRename} className="text-muted-foreground hover:text-foreground">
+            <button onClick={commitRename} className="shrink-0 text-muted-foreground hover:text-foreground">
               <Check className="size-3.5" />
             </button>
-            <button onClick={() => { setTitleValue(column.title); setEditing(false); }} className="text-muted-foreground hover:text-foreground">
+            <button onClick={() => { setTitleValue(column.title); setEditing(false); }} className="shrink-0 text-muted-foreground hover:text-foreground">
               <X className="size-3.5" />
             </button>
           </div>
         ) : (
-          <span
-            className="flex-1 text-sm font-semibold text-foreground cursor-pointer truncate"
-            onDoubleClick={() => setEditing(true)}
-            title={column.title}
-          >
-            {column.title}
-          </span>
+          <>
+            <span
+              className="flex-1 text-sm font-semibold text-foreground cursor-pointer truncate"
+              onDoubleClick={() => setEditing(true)}
+              title={column.title}
+            >
+              {column.title}
+            </span>
+
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{cards.length}</span>
+
+            <button
+              onClick={() => setEditing(true)}
+              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Rename column"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+
+            <button
+              onClick={() => onRemoveColumn(column.id, column.boardId)}
+              className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+              aria-label="Delete column"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </>
         )}
-
-        <span className="text-xs text-muted-foreground tabular-nums">{cards.length}</span>
-
-        <button
-          onClick={() => setEditing(true)}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Rename column"
-        >
-          <Pencil className="size-3.5" />
-        </button>
-
-        <button
-          onClick={() => onRemoveColumn(column.id, column.boardId)}
-          className="text-muted-foreground hover:text-destructive transition-colors"
-          aria-label="Delete column"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
       </div>
 
       {/* Cards */}
