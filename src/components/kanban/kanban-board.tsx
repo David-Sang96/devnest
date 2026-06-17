@@ -21,7 +21,6 @@ import {
 import { Plus, ChevronDown } from "lucide-react";
 import type { KanbanBoard, KanbanColumn, KanbanCard } from "@/types/kanban";
 import { KanbanColumnItem } from "./kanban-column";
-import { KanbanCardItem } from "./kanban-card";
 import { cn } from "@/lib/utils";
 
 interface KanbanBoardProps {

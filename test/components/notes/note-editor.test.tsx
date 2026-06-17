@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { act } from "@testing-library/react";
 import { NoteEditor } from "@/components/notes/note-editor";
 import type { Note } from "@/types/notes";

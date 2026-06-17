@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { parseBackup, exportAllData, importData, downloadBackup } from "@/lib/backup";
 import type { BackupData } from "@/lib/backup";
 import type { Note } from "@/types/notes";
-import type { KanbanBoard, KanbanColumn, KanbanCard } from "@/types/kanban";
+import type { KanbanBoard } from "@/types/kanban";
 
 // ─── DB mock ────────────────────────────────────────────────────────────────
 
@@ -91,7 +91,7 @@ describe("parseBackup()", () => {
   });
 
   it("returns null when version key is missing", () => {
-    const { version: _v, ...bad } = EMPTY_BACKUP;
+    const bad = Object.fromEntries(Object.entries(EMPTY_BACKUP).filter(([k]) => k !== "version"));
     expect(parseBackup(JSON.stringify(bad))).toBeNull();
   });
 
