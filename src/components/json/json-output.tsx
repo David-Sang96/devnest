@@ -1,6 +1,16 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
+import { tokenizeJson, type JsonToken } from "@/lib/json-format";
+
+const tokenClass: Record<JsonToken["type"], string> = {
+  key:         "json-key",
+  string:      "json-string",
+  number:      "json-number",
+  boolean:     "json-bool",
+  null:        "json-null",
+  punctuation: "",
+};
 
 interface JsonOutputProps {
   value: string;
@@ -21,14 +31,18 @@ export function JsonOutput({ value }: JsonOutputProps) {
         <AnimatePresence mode="wait">
           {value ? (
             <motion.pre
-              key={value.slice(0, 40)}
+              key="output"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              className="min-h-full p-4 font-mono text-sm text-foreground whitespace-pre-wrap break-all"
+              className="min-h-full p-4 font-mono text-sm whitespace-pre"
             >
-              {value}
+              {tokenizeJson(value).map((token, i) => (
+                <span key={i} className={tokenClass[token.type]}>
+                  {token.value}
+                </span>
+              ))}
             </motion.pre>
           ) : (
             <motion.div
@@ -37,7 +51,7 @@ export function JsonOutput({ value }: JsonOutputProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              className="flex h-full min-h-[120px] items-center justify-center text-sm text-muted-foreground/50 font-mono"
+              className="flex h-full min-h-30 items-center justify-center text-sm text-muted-foreground/50 font-mono"
             >
               output appears here
             </motion.div>

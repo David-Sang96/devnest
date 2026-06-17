@@ -128,3 +128,16 @@
     @apply font-sans;
   }
 }
+
+/* JSON syntax highlighting */
+.json-key    { color: oklch(0.50 0.22 290); }
+.json-string { color: oklch(0.48 0.17 145); }
+.json-number { color: oklch(0.48 0.18 240); }
+.json-bool   { color: oklch(0.55 0.18 65);  }
+.json-null   { color: oklch(0.52 0.20 25);  }
+
+.dark .json-key    { color: oklch(0.76 0.18 290); }
+.dark .json-string { color: oklch(0.72 0.16 145); }
+.dark .json-number { color: oklch(0.72 0.16 240); }
+.dark .json-bool   { color: oklch(0.80 0.15 65);  }
+.dark .json-null   { color: oklch(0.72 0.18 25);  }
