@@ -21,6 +21,13 @@ export default defineConfig({
       // @dnd-kit/utilities is pure math — use the real package, not a stub.
       "@dnd-kit/core": path.resolve(__dirname, "./test/mocks/dnd-kit.tsx"),
       "@dnd-kit/sortable": path.resolve(__dirname, "./test/mocks/dnd-kit.tsx"),
+      // Replace Tiptap with stubs — ProseMirror requires a real DOM.
+      "@tiptap/react/menus": path.resolve(__dirname, "./test/mocks/tiptap.tsx"),
+      "@tiptap/react": path.resolve(__dirname, "./test/mocks/tiptap.tsx"),
+      "@tiptap/starter-kit": path.resolve(__dirname, "./test/mocks/tiptap.tsx"),
+      "@tiptap/extension-link": path.resolve(__dirname, "./test/mocks/tiptap.tsx"),
+      "@tiptap/extension-underline": path.resolve(__dirname, "./test/mocks/tiptap.tsx"),
+      "@tiptap/pm": path.resolve(__dirname, "./test/mocks/tiptap.tsx"),
     },
   },
 });

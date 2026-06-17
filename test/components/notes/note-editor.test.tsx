@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { NoteEditor } from "@/components/notes/note-editor";
 import type { Note } from "@/types/notes";
 
@@ -9,7 +8,7 @@ function makeNote(overrides: Partial<Note> = {}): Note {
   return {
     id: "n1",
     title: "My Note",
-    content: "My Note\nBody text",
+    content: "",
     createdAt: 1,
     updatedAt: 1,
     ...overrides,
@@ -20,106 +19,109 @@ describe("<NoteEditor />", () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.useRealTimers(); });
 
-  it("renders a textarea with the note's content", () => {
+  // ── Structure ─────────────────────────────────────────────────
+
+  it("renders title input with note.title", () => {
+    render(<NoteEditor note={makeNote({ title: "My Note" })} onUpdate={vi.fn()} />);
+    expect(screen.getByRole("textbox", { name: /note title/i })).toHaveValue("My Note");
+  });
+
+  it("title input is empty and shows placeholder for new Untitled note", () => {
+    render(<NoteEditor note={makeNote({ title: "Untitled", content: "" })} onUpdate={vi.fn()} />);
+    expect(screen.getByRole("textbox", { name: /note title/i })).toHaveValue("");
+    expect(screen.getByPlaceholderText("Untitled")).toBeInTheDocument();
+  });
+
+  it("renders the EditorContent (editor body)", () => {
     render(<NoteEditor note={makeNote()} onUpdate={vi.fn()} />);
-    expect(screen.getByRole("textbox")).toHaveValue("My Note\nBody text");
+    expect(screen.getByTestId("editor-content")).toBeInTheDocument();
   });
 
-  it("derives the title from the first line of content", () => {
-    render(<NoteEditor note={makeNote({ content: "Important note\ndetails" })} onUpdate={vi.fn()} />);
-    expect(screen.getByText("Important note")).toBeInTheDocument();
-  });
+  // ── Title debounce ────────────────────────────────────────────
 
-  it("falls back to 'Untitled' when content is empty", () => {
-    render(<NoteEditor note={makeNote({ content: "" })} onUpdate={vi.fn()} />);
-    expect(screen.getByText("Untitled")).toBeInTheDocument();
-  });
-
-  it("does NOT call onUpdate immediately after typing (debounced)", async () => {
+  it("does not call onUpdate immediately when title changes", () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     render(<NoteEditor note={makeNote()} onUpdate={onUpdate} />);
-
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "New content" } });
-
+    fireEvent.change(screen.getByRole("textbox", { name: /note title/i }), {
+      target: { value: "New Title" },
+    });
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it("calls onUpdate after the 500ms debounce fires", async () => {
+  it("calls onUpdate with title after 500ms debounce", async () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
-    const note = makeNote({ id: "n1" });
-    render(<NoteEditor note={note} onUpdate={onUpdate} />);
-
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "New content" } });
-
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    render(<NoteEditor note={makeNote({ id: "n1" })} onUpdate={onUpdate} />);
+    fireEvent.change(screen.getByRole("textbox", { name: /note title/i }), {
+      target: { value: "New Title" },
     });
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(onUpdate).toHaveBeenCalledWith("n1", { title: "New Title" });
+  });
 
-    expect(onUpdate).toHaveBeenCalledWith("n1", { content: "New content" });
+  it("strips newlines from title input", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    render(<NoteEditor note={makeNote({ id: "n1" })} onUpdate={onUpdate} />);
+    fireEvent.change(screen.getByRole("textbox", { name: /note title/i }), {
+      target: { value: "Hello\nWorld" },
+    });
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(onUpdate).toHaveBeenCalledWith("n1", { title: "HelloWorld" });
   });
 
   it("does not call onUpdate within the 500ms debounce window", async () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     render(<NoteEditor note={makeNote()} onUpdate={onUpdate} />);
-
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Typing…" } });
-
-    // Advance to just before the debounce fires
+    fireEvent.change(screen.getByRole("textbox", { name: /note title/i }), {
+      target: { value: "Typing" },
+    });
     await act(async () => { vi.advanceTimersByTime(499); });
-
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it("shows the 'Saved' indicator after onUpdate resolves", async () => {
+  it("shows Saved indicator after onUpdate resolves", async () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     render(<NoteEditor note={makeNote()} onUpdate={onUpdate} />);
-
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "updated" } });
-
-    // Advance past debounce, then flush the async onUpdate → setShowSaved(true) chain
+    fireEvent.change(screen.getByRole("textbox", { name: /note title/i }), {
+      target: { value: "Updated" },
+    });
     await act(async () => {
       vi.advanceTimersByTime(500);
       await Promise.resolve();
       await Promise.resolve();
     });
-
     expect(screen.getByText("Saved")).toBeInTheDocument();
   });
 
-  it("hides the 'Saved' indicator after 2 seconds", async () => {
+  it("hides Saved indicator after 2 seconds", async () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     render(<NoteEditor note={makeNote()} onUpdate={onUpdate} />);
-
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "updated" } });
-
+    fireEvent.change(screen.getByRole("textbox", { name: /note title/i }), {
+      target: { value: "Updated" },
+    });
     await act(async () => {
       vi.advanceTimersByTime(500);
       await Promise.resolve();
       await Promise.resolve();
     });
     expect(screen.getByText("Saved")).toBeInTheDocument();
-
     await act(async () => { vi.advanceTimersByTime(2000); });
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
   });
 
-  it("renders a placeholder when the textarea is empty", () => {
-    render(<NoteEditor note={makeNote({ content: "" })} onUpdate={vi.fn()} />);
-    expect(screen.getByPlaceholderText("Start writing...")).toBeInTheDocument();
-  });
+  // ── onBack ────────────────────────────────────────────────────
 
   describe("onBack prop", () => {
-    it("renders back button when onBack is provided", () => {
+    it("renders back button when onBack provided", () => {
       render(<NoteEditor note={makeNote()} onUpdate={vi.fn()} onBack={vi.fn()} />);
       expect(screen.getByRole("button", { name: /back to notes list/i })).toBeInTheDocument();
     });
 
-    it("does not render back button when onBack is omitted", () => {
+    it("does not render back button when onBack omitted", () => {
       render(<NoteEditor note={makeNote()} onUpdate={vi.fn()} />);
-      expect(screen.queryByRole("button", { name: /back to notes list list/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /back to notes list/i })).not.toBeInTheDocument();
     });
 
-    it("calls onBack when back button is clicked", () => {
+    it("calls onBack when back button clicked", () => {
       const onBack = vi.fn();
       render(<NoteEditor note={makeNote()} onUpdate={vi.fn()} onBack={onBack} />);
       fireEvent.click(screen.getByRole("button", { name: /back to notes list/i }));

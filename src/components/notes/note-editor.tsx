@@ -1,36 +1,82 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, CheckCheck } from "lucide-react";
 import type { Note } from "@/types";
+import { loadContent } from "@/lib/note-content";
+import { NoteToolbar } from "./note-toolbar";
+import { NoteBubbleMenu } from "./note-bubble-menu";
 
 interface Props {
   note: Note;
-  onUpdate: (id: string, changes: Partial<Pick<Note, "content">>) => Promise<void>;
+  onUpdate: (
+    id: string,
+    changes: Partial<Pick<Note, "content" | "title">>
+  ) => Promise<void>;
   onBack?: () => void;
 }
 
 export function NoteEditor({ note, onUpdate, onBack }: Props) {
-  const [content, setContent] = useState(note.content);
+  const [titleValue, setTitleValue] = useState(
+    note.title === "Untitled" && !note.content ? "" : note.title
+  );
   const [showSaved, setShowSaved] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contentDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function handleChange(value: string) {
-    setContent(value);
-    setShowSaved(false);
+  function triggerSaved() {
+    setShowSaved(true);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setShowSaved(false), 2000);
+  }
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      await onUpdate(note.id, { content: value });
-      setShowSaved(true);
-      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-      savedTimerRef.current = setTimeout(() => setShowSaved(false), 2000);
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      Link.configure({ openOnClick: false }),
+    ],
+    content: loadContent(note.content),
+    editorProps: {
+      attributes: {
+        class: "prose-editor focus:outline-none min-h-64 px-4 md:px-6 py-5",
+      },
+    },
+    onUpdate({ editor }) {
+      setShowSaved(false);
+      if (contentDebounceRef.current) clearTimeout(contentDebounceRef.current);
+      contentDebounceRef.current = setTimeout(async () => {
+        await onUpdate(note.id, {
+          content: JSON.stringify(editor.getJSON()),
+        });
+        triggerSaved();
+      }, 500);
+    },
+  });
+
+  function handleTitleChange(value: string) {
+    const clean = value.replace(/\n/g, "");
+    setTitleValue(clean);
+    setShowSaved(false);
+    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+    titleDebounceRef.current = setTimeout(async () => {
+      await onUpdate(note.id, { title: clean });
+      triggerSaved();
     }, 500);
   }
 
-  const title = content.split("\n")[0].trim() || "Untitled";
+  function handleTitleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      editor?.commands.focus("start");
+    }
+  }
 
   return (
     <motion.div
@@ -40,7 +86,7 @@ export function NoteEditor({ note, onUpdate, onBack }: Props) {
       className="flex flex-col h-full"
     >
       <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-border shrink-0 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {onBack && (
             <button
               onClick={onBack}
@@ -50,7 +96,15 @@ export function NoteEditor({ note, onUpdate, onBack }: Props) {
               <ArrowLeft className="size-4" />
             </button>
           )}
-          <h2 className="text-base font-semibold truncate text-foreground">{title}</h2>
+          <input
+            type="text"
+            value={titleValue}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            onKeyDown={handleTitleKeyDown}
+            placeholder="Untitled"
+            aria-label="Note title"
+            className="flex-1 min-w-0 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none"
+          />
         </div>
         <AnimatePresence>
           {showSaved && (
@@ -68,13 +122,12 @@ export function NoteEditor({ note, onUpdate, onBack }: Props) {
         </AnimatePresence>
       </div>
 
-      <textarea
-        className="flex-1 w-full resize-none bg-transparent px-4 md:px-6 py-5 text-sm leading-7 text-foreground placeholder:text-muted-foreground outline-none font-mono"
-        value={content}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder="Start writing..."
-        autoFocus
-      />
+      <NoteToolbar editor={editor} />
+
+      <div className="flex-1 overflow-y-auto">
+        <NoteBubbleMenu editor={editor} />
+        <EditorContent editor={editor} />
+      </div>
     </motion.div>
   );
 }

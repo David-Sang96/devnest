@@ -160,6 +160,42 @@ describe("useNotes()", () => {
     expect(updated?.title).toBe("Untitled");
   });
 
+  it("updateNote() with explicit title stores that title without re-deriving from content", async () => {
+    const note = makeNote({ id: "n1", content: "Old content" });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.updateNote("n1", { title: "Custom Title" });
+    });
+
+    const updated = result.current.notes.find((n) => n.id === "n1");
+    expect(updated?.title).toBe("Custom Title");
+    expect(updated?.content).toBe("Old content");
+  });
+
+  it("updateNote() with JSON content uses extractTitle to set title", async () => {
+    const note = makeNote({ id: "n1" });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+
+    const doc = JSON.stringify({
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "JSON Note Title" }] }],
+    });
+
+    await act(async () => {
+      await result.current.updateNote("n1", { content: doc });
+    });
+
+    const updated = result.current.notes.find((n) => n.id === "n1");
+    expect(updated?.title).toBe("JSON Note Title");
+  });
+
   it("updateNote() is a no-op for an unknown id", async () => {
     const { result } = renderHook(() => useNotes());
     await waitFor(() => expect(result.current.notes).toBeDefined());

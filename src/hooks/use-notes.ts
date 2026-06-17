@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getDB } from "@/lib/db";
 import type { Note } from "@/types";
+import { extractTitle } from "@/lib/note-content";
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -28,15 +29,22 @@ export function useNotes() {
     return note;
   }
 
-  async function updateNote(id: string, changes: Partial<Pick<Note, "content">>) {
+  async function updateNote(id: string, changes: Partial<Pick<Note, "content" | "title">>) {
     const db = await getDB();
     const existing = await db.get("notes", id);
     if (!existing) return;
-    const firstLine = (changes.content ?? existing.content).split("\n")[0].trim();
+
+    let derivedTitle = existing.title;
+    if (changes.title !== undefined) {
+      derivedTitle = changes.title.trim() || "Untitled";
+    } else if (changes.content !== undefined) {
+      derivedTitle = extractTitle(changes.content);
+    }
+
     const updated: Note = {
       ...existing,
       ...changes,
-      title: firstLine || "Untitled",
+      title: derivedTitle,
       updatedAt: Date.now(),
     };
     await db.put("notes", updated);
