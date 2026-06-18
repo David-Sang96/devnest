@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { extractPlainText } from "@/lib/note-content";
 import type { Note } from "@/types";
 
 interface Props {
@@ -11,10 +12,11 @@ interface Props {
   selected: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  onTogglePin: () => void;
 }
 
-export function NoteListItem({ note, selected, onSelect, onDelete }: Props) {
-  const preview = note.content.split("\n").slice(1).join(" ").trim();
+export function NoteListItem({ note, selected, onSelect, onDelete, onTogglePin }: Props) {
+  const preview = extractPlainText(note.content);
 
   return (
     <motion.div
@@ -42,21 +44,39 @@ export function NoteListItem({ note, selected, onSelect, onDelete }: Props) {
           {preview || new Date(note.updatedAt).toLocaleDateString()}
         </p>
       </div>
-      <Button
-        size="icon-xs"
-        variant="ghost"
-        className={cn(
-          "opacity-0 group-hover:opacity-100 shrink-0 mt-0.5 transition-opacity",
-          selected && "hover:bg-white/20 text-primary-foreground"
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        aria-label="Delete note"
-      >
-        <Trash2 className="size-3" />
-      </Button>
+      <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+        <Button
+          size="icon-xs"
+          variant="ghost"
+          className={cn(
+            "transition-opacity",
+            note.pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            selected && "hover:bg-white/20 text-primary-foreground"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePin();
+          }}
+          aria-label={note.pinned ? "Unpin note" : "Pin note"}
+        >
+          <Pin className={cn("size-3", note.pinned && "fill-current")} />
+        </Button>
+        <Button
+          size="icon-xs"
+          variant="ghost"
+          className={cn(
+            "opacity-0 group-hover:opacity-100 shrink-0 transition-opacity",
+            selected && "hover:bg-white/20 text-primary-foreground"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          aria-label="Delete note"
+        >
+          <Trash2 className="size-3" />
+        </Button>
+      </div>
     </motion.div>
   );
 }
