@@ -1,7 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack)"
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npm install *)",
+      "Bash(gh repo *)",
+      "Bash(npx shadcn@latest add input textarea badge tooltip dialog scroll-area --yes)",
+      "Bash(npm run *)",
+      "Bash(git -C /home/david/Desktop/personal-project add PROJECT_RULES.md src/types/ src/lib/db.ts src/app/layout.tsx src/app/page.tsx src/app/\\\\\\(workspace\\\\\\)/ src/components/layout/ src/components/ui/ package.json package-lock.json)",
+      "Bash(git -C /home/david/Desktop/personal-project commit -m ' *)",
+      "Bash(git -C /home/david/Desktop/personal-project push)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(npm test *)",
+      "Bash(xargs ls)",
+      "Bash(npx vitest *)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
 }
