@@ -28,6 +28,7 @@ function makeNote(overrides: Partial<Note> = {}): Note {
     content: "",
     createdAt: now,
     updatedAt: now,
+    pinned: false,
     ...overrides,
   };
 }
@@ -251,5 +252,63 @@ describe("useNotes()", () => {
 
     expect(result.current.notes).toHaveLength(1);
     expect(result.current.notes[0].id).toBe("n2");
+  });
+
+  // ── togglePin ──────────────────────────────────────────────────────────────
+
+  it("togglePin() sets pinned=true on an unpinned note", async () => {
+    const note = makeNote({ id: "n1", pinned: false });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.togglePin("n1");
+    });
+
+    expect(result.current.notes[0].pinned).toBe(true);
+  });
+
+  it("togglePin() sets pinned=false on a pinned note", async () => {
+    const note = makeNote({ id: "n1", pinned: true });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.togglePin("n1");
+    });
+
+    expect(result.current.notes[0].pinned).toBe(false);
+  });
+
+  it("togglePin() persists the change to the mock DB", async () => {
+    const note = makeNote({ id: "n1", pinned: false });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.togglePin("n1");
+    });
+
+    expect(mockDB.put).toHaveBeenCalledWith(
+      "notes",
+      expect.objectContaining({ id: "n1", pinned: true })
+    );
+  });
+
+  it("togglePin() is a no-op for an unknown id", async () => {
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toBeDefined());
+
+    await act(async () => {
+      await result.current.togglePin("ghost");
+    });
+
+    expect(result.current.notes).toHaveLength(0);
   });
 });

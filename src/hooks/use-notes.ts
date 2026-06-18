@@ -61,5 +61,14 @@ export function useNotes() {
     setNotes((prev) => prev.filter((n) => n.id !== id));
   }
 
-  return { notes, createNote, updateNote, removeNote };
+  async function togglePin(id: string) {
+    const db = await getDB();
+    const existing = await db.get("notes", id);
+    if (!existing) return;
+    const updated: Note = { ...existing, pinned: !existing.pinned };
+    await db.put("notes", updated);
+    setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+  }
+
+  return { notes, createNote, updateNote, removeNote, togglePin };
 }
