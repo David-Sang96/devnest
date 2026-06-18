@@ -108,7 +108,7 @@ describe("extractPlainText", () => {
         },
       ],
     });
-    expect(extractPlainText(doc)).toBe("Hello  world");
+    expect(extractPlainText(doc)).toBe("Hello world");
   });
 
   it("returns empty string for Tiptap JSON with no text nodes", () => {
