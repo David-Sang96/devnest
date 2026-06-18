@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { loadContent, extractTitle } from "@/lib/note-content";
+import { loadContent, extractTitle, extractPlainText } from "@/lib/note-content";
 
 const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
 
@@ -76,5 +76,57 @@ describe("extractTitle", () => {
 
   it("returns 'Untitled' for malformed JSON with doc prefix", () => {
     expect(extractTitle('{"type":"doc" BROKEN')).toBe("Untitled");
+  });
+});
+
+describe("extractPlainText", () => {
+  it("returns empty string for empty input", () => {
+    expect(extractPlainText("")).toBe("");
+  });
+
+  it("extracts text from Tiptap JSON, skipping the first paragraph (title)", () => {
+    const doc = JSON.stringify({
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Title" }] },
+        { type: "paragraph", content: [{ type: "text", text: "Body text" }] },
+      ],
+    });
+    expect(extractPlainText(doc)).toBe("Title Body text");
+  });
+
+  it("extracts text from nested Tiptap nodes", () => {
+    const doc = JSON.stringify({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "Hello" },
+            { type: "text", text: " world" },
+          ],
+        },
+      ],
+    });
+    expect(extractPlainText(doc)).toBe("Hello  world");
+  });
+
+  it("returns empty string for Tiptap JSON with no text nodes", () => {
+    const doc = JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] });
+    expect(extractPlainText(doc)).toBe("");
+  });
+
+  it("returns empty string for malformed Tiptap JSON", () => {
+    expect(extractPlainText('{"type":"doc" BROKEN')).toBe("");
+  });
+
+  it("extracts body from legacy plain text (skips first line)", () => {
+    expect(extractPlainText("Title\nFirst body line\nSecond body line")).toBe(
+      "First body line Second body line"
+    );
+  });
+
+  it("returns empty string for legacy plain text with title only", () => {
+    expect(extractPlainText("Title only")).toBe("");
   });
 });

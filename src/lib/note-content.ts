@@ -47,3 +47,21 @@ export function extractTitle(raw: string): string {
 
   return raw.split("\n")[0].trim() || "Untitled";
 }
+
+function extractTextFromNode(node: DocNode): string {
+  if ("text" in node) return (node as TextNode).text ?? "";
+  return (node.content ?? []).map(extractTextFromNode).join(" ");
+}
+
+export function extractPlainText(raw: string): string {
+  if (!raw) return "";
+  if (raw.trimStart().startsWith('{"type":"doc"')) {
+    try {
+      const doc = JSON.parse(raw) as DocNode;
+      return extractTextFromNode(doc).trim();
+    } catch {
+      return "";
+    }
+  }
+  return raw.split("\n").slice(1).join(" ").trim();
+}
