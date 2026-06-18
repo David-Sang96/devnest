@@ -25,8 +25,9 @@ export function NoteBubbleMenu({ editor }: NoteBubbleMenuProps) {
   if (!editor) return null;
 
   function applyLink() {
+    if (!editor) return;
     if (linkUrl.trim()) {
-      editor!.chain().focus().setLink({ href: linkUrl.trim() }).run();
+      editor.chain().focus().setLink({ href: linkUrl.trim() }).run();
     }
     setShowLink(false);
     setLinkUrl("");
@@ -51,6 +52,7 @@ export function NoteBubbleMenu({ editor }: NoteBubbleMenuProps) {
                 if (e.key === "Escape") cancelLink();
               }}
               placeholder="https://..."
+              aria-label="Link URL"
               className="w-44 rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
             <button
