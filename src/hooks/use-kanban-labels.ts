@@ -44,14 +44,17 @@ export function useKanbanLabels(boardId: string | null) {
       await db.put("kanban_labels", updated);
       setLabels((prev) => prev.map((l) => (l.id === id ? updated : l)));
     },
-    []
+    [] // Only references parameters and functional setState form; no captured state
   );
 
-  const removeLabel = useCallback(async (id: string) => {
-    const db = await getDB();
-    await db.delete("kanban_labels", id);
-    setLabels((prev) => prev.filter((l) => l.id !== id));
-  }, []);
+  const removeLabel = useCallback(
+    async (id: string) => {
+      const db = await getDB();
+      await db.delete("kanban_labels", id);
+      setLabels((prev) => prev.filter((l) => l.id !== id));
+    },
+    [] // Only references parameters and functional setState form; no captured state
+  );
 
   return { labels, createLabel, updateLabel, removeLabel };
 }
