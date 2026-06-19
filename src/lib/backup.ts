@@ -47,6 +47,14 @@ export function downloadBackup(data: BackupData): void {
 export function parseBackup(json: string): BackupData | null {
   try {
     const data = JSON.parse(json);
+    // Accept v1 backups: kanban_labels didn't exist yet
+    if (data?.version === 1) {
+      if (!Array.isArray(data.notes)) return null;
+      if (!Array.isArray(data.kanban_boards)) return null;
+      if (!Array.isArray(data.kanban_columns)) return null;
+      if (!Array.isArray(data.kanban_cards)) return null;
+      return { ...data, version: 2, kanban_labels: [] } as BackupData;
+    }
     if (data?.version !== 2) return null;
     if (!Array.isArray(data.notes)) return null;
     if (!Array.isArray(data.kanban_boards)) return null;

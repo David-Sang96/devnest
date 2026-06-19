@@ -86,8 +86,16 @@ describe("parseBackup()", () => {
     expect(parseBackup("")).toBeNull();
   });
 
-  it("returns null when version is not 2", () => {
-    const bad = { ...EMPTY_BACKUP, version: 1 };
+  it("accepts v1 backups and normalizes them to version 2 with empty kanban_labels", () => {
+    const v1 = { version: 1, exportedAt: 1_000_000, notes: [], kanban_boards: [], kanban_columns: [], kanban_cards: [] };
+    const result = parseBackup(JSON.stringify(v1));
+    expect(result).not.toBeNull();
+    expect(result?.version).toBe(2);
+    expect(result?.kanban_labels).toEqual([]);
+  });
+
+  it("returns null when version is not 1 or 2", () => {
+    const bad = { ...EMPTY_BACKUP, version: 3 };
     expect(parseBackup(JSON.stringify(bad))).toBeNull();
   });
 

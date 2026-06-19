@@ -80,7 +80,13 @@ export function CardDetailPanel({
   const cardLabels = labels.filter((l) => selectedIds.includes(l.id));
 
   const dueDateValue = card.dueDate
-    ? new Date(card.dueDate).toISOString().slice(0, 10)
+    ? (() => {
+        const d = new Date(card.dueDate);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      })()
     : "";
 
   function handleToggleLabel(labelId: string) {
@@ -173,9 +179,11 @@ export function CardDetailPanel({
               type="date"
               value={dueDateValue}
               onChange={(e) => {
-                const ts = e.target.value
-                  ? new Date(e.target.value).getTime()
-                  : undefined;
+                let ts: number | undefined;
+                if (e.target.value) {
+                  const [y, m, d] = e.target.value.split("-").map(Number);
+                  ts = new Date(y, m - 1, d).getTime(); // local midnight
+                }
                 onUpdateCard(card.id, { dueDate: ts });
               }}
               className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
