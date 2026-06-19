@@ -1,14 +1,11 @@
 ---
 marp: true
+auto-advance: 20
 ---
 
 # DevNest
 
----
-
-## Slide 1 — What is DevNest?
-
-**DevNest** is an all-in-one personal developer workspace that runs entirely in your browser.
+**An all-in-one personal developer workspace that runs entirely in your browser.**
 
 - Take notes with a rich WYSIWYG editor
 - Manage tasks on a visual Kanban board
