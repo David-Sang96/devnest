@@ -115,7 +115,7 @@ export function useKanban() {
   }, []);
 
   const updateColumn = useCallback(
-    async (id: string, changes: Partial<Pick<KanbanColumn, "title" | "cardOrder">>) => {
+    async (id: string, changes: Partial<Pick<KanbanColumn, "title" | "cardOrder" | "color">>) => {
       const db = await getDB();
       setState((prev) => {
         const columns = prev.columns.map((c) =>
@@ -197,7 +197,7 @@ export function useKanban() {
   );
 
   const updateCard = useCallback(
-    async (id: string, changes: Partial<Pick<KanbanCard, "title" | "description">>) => {
+    async (id: string, changes: Partial<Pick<KanbanCard, "title" | "description" | "priority" | "dueDate" | "labelIds" | "archived">>) => {
       const db = await getDB();
       setState((prev) => {
         const cards = prev.cards.map((c) =>
@@ -298,6 +298,36 @@ export function useKanban() {
     []
   );
 
+  const archiveCard = useCallback(
+    async (id: string) => {
+      const db = await getDB();
+      setState((prev) => {
+        const cards = prev.cards.map((c) =>
+          c.id === id ? { ...c, archived: true, updatedAt: Date.now() } : c
+        );
+        const updated = cards.find((c) => c.id === id)!;
+        db.put("kanban_cards", updated);
+        return { ...prev, cards };
+      });
+    },
+    []
+  );
+
+  const restoreCard = useCallback(
+    async (id: string) => {
+      const db = await getDB();
+      setState((prev) => {
+        const cards = prev.cards.map((c) =>
+          c.id === id ? { ...c, archived: false, updatedAt: Date.now() } : c
+        );
+        const updated = cards.find((c) => c.id === id)!;
+        db.put("kanban_cards", updated);
+        return { ...prev, cards };
+      });
+    },
+    []
+  );
+
   return {
     ...state,
     createBoard,
@@ -309,6 +339,8 @@ export function useKanban() {
     createCard,
     updateCard,
     removeCard,
+    archiveCard,
+    restoreCard,
     moveCard,
     reorderCards,
     reorderColumns,

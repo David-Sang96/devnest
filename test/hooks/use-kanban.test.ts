@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useKanban } from "@/hooks/use-kanban";
-import type { KanbanBoard, KanbanColumn, KanbanCard } from "@/types/kanban";
+import type { KanbanBoard, KanbanColumn, KanbanCard, KanbanLabel } from "@/types/kanban";
 
 // ─── In-memory DB mock ───────────────────────────────────────────────────────
 
@@ -9,12 +9,14 @@ type Stores = {
   kanban_boards: Map<string, KanbanBoard>;
   kanban_columns: Map<string, KanbanColumn>;
   kanban_cards: Map<string, KanbanCard>;
+  kanban_labels: Map<string, KanbanLabel>;
 };
 
 let stores: Stores = {
   kanban_boards: new Map(),
   kanban_columns: new Map(),
   kanban_cards: new Map(),
+  kanban_labels: new Map(),
 };
 
 function resetStores() {
@@ -22,6 +24,7 @@ function resetStores() {
     kanban_boards: new Map(),
     kanban_columns: new Map(),
     kanban_cards: new Map(),
+    kanban_labels: new Map(),
   };
 }
 
@@ -83,12 +86,14 @@ function makeCard(overrides: Partial<KanbanCard> = {}): KanbanCard {
 function seedAndConfigureMocks(
   boards: KanbanBoard[] = [],
   columns: KanbanColumn[] = [],
-  cards: KanbanCard[] = []
+  cards: KanbanCard[] = [],
+  labels: KanbanLabel[] = []
 ) {
   resetStores();
   boards.forEach((b) => stores.kanban_boards.set(b.id, b));
   columns.forEach((c) => stores.kanban_columns.set(c.id, c));
   cards.forEach((c) => stores.kanban_cards.set(c.id, c));
+  labels.forEach((l) => stores.kanban_labels.set(l.id, l));
 
   // getAll reads straight from the in-memory stores
   mockDB.getAll.mockImplementation((storeName: keyof Stores) =>
@@ -444,5 +449,130 @@ describe("reorderColumns()", () => {
     });
 
     expect(result.current.boards[0].columnOrder).toEqual(["c2", "c1"]);
+  });
+});
+
+// ─── updateCard (new fields) ─────────────────────────────────────────────────
+
+describe("updateCard() — new fields", () => {
+  it("sets priority on a card", async () => {
+    const board = makeBoard({ id: "b1" });
+    const col = makeColumn({ id: "c1", boardId: "b1", cardOrder: ["k1"] });
+    const card = makeCard({ id: "k1", columnId: "c1", boardId: "b1" });
+    seedAndConfigureMocks([board], [col], [card]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.cards).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.updateCard("k1", { priority: "high" });
+    });
+
+    expect(result.current.cards[0].priority).toBe("high");
+  });
+
+  it("sets dueDate on a card", async () => {
+    const board = makeBoard({ id: "b1" });
+    const col = makeColumn({ id: "c1", boardId: "b1", cardOrder: ["k1"] });
+    const card = makeCard({ id: "k1", columnId: "c1", boardId: "b1" });
+    seedAndConfigureMocks([board], [col], [card]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.cards).toHaveLength(1));
+
+    const due = Date.now() + 86_400_000;
+    await act(async () => {
+      await result.current.updateCard("k1", { dueDate: due });
+    });
+
+    expect(result.current.cards[0].dueDate).toBe(due);
+  });
+
+  it("sets labelIds on a card", async () => {
+    const board = makeBoard({ id: "b1" });
+    const col = makeColumn({ id: "c1", boardId: "b1", cardOrder: ["k1"] });
+    const card = makeCard({ id: "k1", columnId: "c1", boardId: "b1" });
+    seedAndConfigureMocks([board], [col], [card]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.cards).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.updateCard("k1", { labelIds: ["label-a", "label-b"] });
+    });
+
+    expect(result.current.cards[0].labelIds).toEqual(["label-a", "label-b"]);
+  });
+});
+
+// ─── updateColumn (color) ────────────────────────────────────────────────────
+
+describe("updateColumn() — color", () => {
+  it("sets color on a column", async () => {
+    const board = makeBoard({ id: "b1", columnOrder: ["c1"] });
+    const col = makeColumn({ id: "c1", boardId: "b1" });
+    seedAndConfigureMocks([board], [col]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.columns).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.updateColumn("c1", { color: "#1d4ed8" });
+    });
+
+    expect(result.current.columns[0].color).toBe("#1d4ed8");
+  });
+
+  it("clears color when set to undefined", async () => {
+    const board = makeBoard({ id: "b1", columnOrder: ["c1"] });
+    const col = makeColumn({ id: "c1", boardId: "b1", color: "#1d4ed8" } as KanbanColumn);
+    seedAndConfigureMocks([board], [col]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.columns).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.updateColumn("c1", { color: undefined });
+    });
+
+    expect(result.current.columns[0].color).toBeUndefined();
+  });
+});
+
+// ─── archiveCard / restoreCard ───────────────────────────────────────────────
+
+describe("archiveCard()", () => {
+  it("sets archived: true on the card", async () => {
+    const board = makeBoard({ id: "b1" });
+    const col = makeColumn({ id: "c1", boardId: "b1", cardOrder: ["k1"] });
+    const card = makeCard({ id: "k1", columnId: "c1", boardId: "b1" });
+    seedAndConfigureMocks([board], [col], [card]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.cards).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.archiveCard("k1");
+    });
+
+    expect(result.current.cards[0].archived).toBe(true);
+  });
+});
+
+describe("restoreCard()", () => {
+  it("sets archived: false on the card", async () => {
+    const board = makeBoard({ id: "b1" });
+    const col = makeColumn({ id: "c1", boardId: "b1", cardOrder: ["k1"] });
+    const card = makeCard({ id: "k1", columnId: "c1", boardId: "b1", archived: true } as KanbanCard);
+    seedAndConfigureMocks([board], [col], [card]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.cards).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.restoreCard("k1");
+    });
+
+    expect(result.current.cards[0].archived).toBe(false);
   });
 });
