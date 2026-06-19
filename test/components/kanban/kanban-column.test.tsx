@@ -23,6 +23,8 @@ const defaultProps = {
   onRemoveCard: vi.fn(),
   onRemoveColumn: vi.fn(),
   onRenameColumn: vi.fn(),
+  onColorColumn: vi.fn(),
+  onCardClick: vi.fn(),
 };
 
 describe("<KanbanColumnItem />", () => {
@@ -87,5 +89,56 @@ describe("<KanbanColumnItem />", () => {
     render(<KanbanColumnItem {...defaultProps} onRemoveColumn={onRemoveColumn} />);
     await userEvent.click(screen.getByRole("button", { name: /delete column/i }));
     expect(onRemoveColumn).toHaveBeenCalledWith("col1", "b1");
+  });
+
+  describe("card count badge", () => {
+    it("shows 0 for empty column", () => {
+      render(<KanbanColumnItem {...defaultProps} />);
+      expect(screen.getByText("0")).toBeInTheDocument();
+    });
+
+    it("counts only non-archived cards", () => {
+      const cards: KanbanCard[] = [
+        { id: "c1", columnId: "col1", boardId: "b1", title: "Active", description: "", createdAt: 1, updatedAt: 1 },
+        { id: "c2", columnId: "col1", boardId: "b1", title: "Archived", description: "", createdAt: 1, updatedAt: 1, archived: true },
+      ];
+      render(
+        <KanbanColumnItem
+          {...defaultProps}
+          column={makeColumn({ cardOrder: ["c1", "c2"] })}
+          cards={cards}
+        />
+      );
+      expect(screen.getByText("1")).toBeInTheDocument();
+    });
+
+    it("archived cards are not rendered in the card list", () => {
+      const cards: KanbanCard[] = [
+        { id: "c1", columnId: "col1", boardId: "b1", title: "Active Card", description: "", createdAt: 1, updatedAt: 1 },
+        { id: "c2", columnId: "col1", boardId: "b1", title: "Archived Card", description: "", createdAt: 1, updatedAt: 1, archived: true },
+      ];
+      render(
+        <KanbanColumnItem
+          {...defaultProps}
+          column={makeColumn({ cardOrder: ["c1", "c2"] })}
+          cards={cards}
+        />
+      );
+      expect(screen.getByText("Active Card")).toBeInTheDocument();
+      expect(screen.queryByText("Archived Card")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("column color", () => {
+    it("renders palette / column color button", () => {
+      render(<KanbanColumnItem {...defaultProps} />);
+      expect(screen.getByRole("button", { name: /column color/i })).toBeInTheDocument();
+    });
+
+    it("clicking palette button opens color picker", async () => {
+      render(<KanbanColumnItem {...defaultProps} />);
+      await userEvent.click(screen.getByRole("button", { name: /column color/i }));
+      expect(screen.getByText(/column color/i)).toBeInTheDocument();
+    });
   });
 });
