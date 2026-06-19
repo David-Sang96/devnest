@@ -1,3 +1,7 @@
+---
+marp: true
+---
+
 # DevNest
 
 ---
@@ -37,8 +41,7 @@ Developer tools are scattered across too many apps.
 **Kanban Board**
 - Drag-and-drop cards across columns
 - Card priorities, due dates, and labels
-- Column color theming
-- Archive cards instead of deleting them
+- Column color theming + card archiving
 
 **Other Tools**
 - Password manager (local only)
@@ -48,18 +51,18 @@ Developer tools are scattered across too many apps.
 
 ## Slide 4 — Tech Stack
 
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 16 App Router |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 (CSS-first) |
-| Components | shadcn/ui + @base-ui/react |
-| Animation | Motion v12 |
-| Drag & Drop | @dnd-kit |
-| Rich Text | Tiptap + ProseMirror |
-| Storage | IndexedDB via `idb` |
-| Tests | Vitest + Testing Library |
-| Built with | Claude Code |
+| Layer       | Choice                      |
+| ----------- | --------------------------- |
+| Framework   | Next.js 16 App Router       |
+| Language    | TypeScript                  |
+| Styling     | Tailwind CSS v4 (CSS-first) |
+| Components  | shadcn/ui + @base-ui/react  |
+| Animation   | Motion v12                  |
+| Drag & Drop | @dnd-kit                    |
+| Rich Text   | Tiptap + ProseMirror        |
+| Storage     | IndexedDB via `idb`         |
+| Tests       | Vitest + Testing Library    |
+| Built with  | Claude Code                 |
 
 ---
 
