@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { parseBackup, exportAllData, importData, downloadBackup } from "@/lib/backup";
 import type { BackupData } from "@/lib/backup";
 import type { Note } from "@/types/notes";
-import type { KanbanBoard } from "@/types/kanban";
+import type { KanbanBoard, KanbanLabel } from "@/types/kanban";
 
 // ─── DB mock ────────────────────────────────────────────────────────────────
 
@@ -28,12 +28,13 @@ vi.mock("@/lib/db", () => ({
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const EMPTY_BACKUP: BackupData = {
-  version: 1,
+  version: 2,
   exportedAt: 1_000_000,
   notes: [],
   kanban_boards: [],
   kanban_columns: [],
   kanban_cards: [],
+  kanban_labels: [],
 };
 
 const NOTE: Note = {
@@ -61,7 +62,7 @@ describe("parseBackup()", () => {
 
   it("returns the parsed backup with correct version", () => {
     const result = parseBackup(JSON.stringify(EMPTY_BACKUP));
-    expect(result?.version).toBe(1);
+    expect(result?.version).toBe(2);
   });
 
   it("preserves notes data", () => {
@@ -85,8 +86,8 @@ describe("parseBackup()", () => {
     expect(parseBackup("")).toBeNull();
   });
 
-  it("returns null when version is not 1", () => {
-    const bad = { ...EMPTY_BACKUP, version: 2 };
+  it("returns null when version is not 2", () => {
+    const bad = { ...EMPTY_BACKUP, version: 1 };
     expect(parseBackup(JSON.stringify(bad))).toBeNull();
   });
 
@@ -114,6 +115,11 @@ describe("parseBackup()", () => {
     const bad = { ...EMPTY_BACKUP, kanban_cards: 42 };
     expect(parseBackup(JSON.stringify(bad))).toBeNull();
   });
+
+  it("returns null when kanban_labels is not an array", () => {
+    const bad = { ...EMPTY_BACKUP, kanban_labels: {} };
+    expect(parseBackup(JSON.stringify(bad))).toBeNull();
+  });
 });
 
 // ─── exportAllData ───────────────────────────────────────────────────────────
@@ -123,10 +129,10 @@ describe("exportAllData()", () => {
     vi.clearAllMocks();
   });
 
-  it("returns a BackupData with version 1", async () => {
+  it("returns a BackupData with version 2", async () => {
     mockDB.getAll.mockResolvedValue([]);
     const result = await exportAllData();
-    expect(result.version).toBe(1);
+    expect(result.version).toBe(2);
   });
 
   it("sets exportedAt to approximately now", async () => {
@@ -138,18 +144,20 @@ describe("exportAllData()", () => {
     expect(result.exportedAt).toBeLessThanOrEqual(after);
   });
 
-  it("reads from all four stores and includes the data", async () => {
+  it("reads from all five stores and includes the data", async () => {
     mockDB.getAll
       .mockResolvedValueOnce([NOTE])          // notes
       .mockResolvedValueOnce([BOARD])         // kanban_boards
       .mockResolvedValueOnce([])              // kanban_columns
-      .mockResolvedValueOnce([]);             // kanban_cards
+      .mockResolvedValueOnce([])              // kanban_cards
+      .mockResolvedValueOnce([]);             // kanban_labels
 
     const result = await exportAllData();
     expect(result.notes).toHaveLength(1);
     expect(result.kanban_boards).toHaveLength(1);
     expect(result.kanban_columns).toHaveLength(0);
     expect(result.kanban_cards).toHaveLength(0);
+    expect(result.kanban_labels).toHaveLength(0);
   });
 
   it("returns empty arrays when stores are empty", async () => {
@@ -159,6 +167,7 @@ describe("exportAllData()", () => {
     expect(result.kanban_boards).toEqual([]);
     expect(result.kanban_columns).toEqual([]);
     expect(result.kanban_cards).toEqual([]);
+    expect(result.kanban_labels).toEqual([]);
   });
 });
 
@@ -172,10 +181,10 @@ describe("importData()", () => {
     mockTx.done = Promise.resolve();
   });
 
-  it("clears all four stores before writing", async () => {
+  it("clears all five stores before writing", async () => {
     const backup: BackupData = { ...EMPTY_BACKUP, notes: [NOTE] };
     await importData(backup);
-    expect(mockStore.clear).toHaveBeenCalledTimes(4);
+    expect(mockStore.clear).toHaveBeenCalledTimes(5);
   });
 
   it("writes each note record into the store", async () => {
@@ -188,6 +197,19 @@ describe("importData()", () => {
     const backup: BackupData = { ...EMPTY_BACKUP, kanban_boards: [BOARD] };
     await importData(backup);
     expect(mockStore.put).toHaveBeenCalledWith(BOARD);
+  });
+
+  it("writes each label record into the store", async () => {
+    const label: KanbanLabel = {
+      id: "l1",
+      boardId: "b1",
+      name: "Bug",
+      color: "#ff0000",
+      createdAt: 1,
+    };
+    const backup: BackupData = { ...EMPTY_BACKUP, kanban_labels: [label] };
+    await importData(backup);
+    expect(mockStore.put).toHaveBeenCalledWith(label);
   });
 
   it("completes without throwing for an empty backup", async () => {
