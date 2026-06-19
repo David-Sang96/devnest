@@ -49,6 +49,8 @@ interface KanbanBoardProps {
   ) => void;
   onReorderCards: (columnId: string, newCardOrder: string[]) => void;
   onReorderColumns: (boardId: string, newColumnOrder: string[]) => void;
+  onColorColumn: (id: string, color: string | undefined) => void;
+  onCardClick: (cardId: string) => void;
 }
 
 export function KanbanBoardView({
@@ -63,6 +65,8 @@ export function KanbanBoardView({
   onMoveCard,
   onReorderCards,
   onReorderColumns,
+  onColorColumn,
+  onCardClick,
 }: KanbanBoardProps) {
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColTitle, setNewColTitle] = useState("");
@@ -178,6 +182,8 @@ export function KanbanBoardView({
                 onRemoveCard={onRemoveCard}
                 onRemoveColumn={onRemoveColumn}
                 onRenameColumn={onRenameColumn}
+                onColorColumn={onColorColumn}
+                onCardClick={onCardClick}
               />
             ))}
           </AnimatePresence>

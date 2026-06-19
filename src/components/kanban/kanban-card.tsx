@@ -17,9 +17,10 @@ const cardVariants = {
 interface KanbanCardProps {
   card: KanbanCard;
   onRemove: (id: string, columnId: string) => void;
+  onCardClick: (cardId: string) => void;
 }
 
-export function KanbanCardItem({ card, onRemove }: KanbanCardProps) {
+export function KanbanCardItem({ card, onRemove, onCardClick }: KanbanCardProps) {
   const [hovered, setHovered] = useState(false);
   const {
     attributes,
@@ -61,7 +62,10 @@ export function KanbanCardItem({ card, onRemove }: KanbanCardProps) {
         <GripVertical className="size-3.5" />
       </button>
 
-      <span className="flex-1 leading-snug text-foreground break-words">
+      <span
+        className="flex-1 leading-snug text-foreground break-words cursor-pointer"
+        onClick={() => onCardClick(card.id)}
+      >
         {card.title}
       </span>
 

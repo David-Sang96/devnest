@@ -117,6 +117,10 @@ export default function KanbanPage() {
                 onMoveCard={kanban.moveCard}
                 onReorderCards={kanban.reorderCards}
                 onReorderColumns={kanban.reorderColumns}
+                onColorColumn={(id, color) =>
+                  kanban.updateColumn(id, { color })
+                }
+                onCardClick={() => {}}
               />
             </motion.div>
           )}
