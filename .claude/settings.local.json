@@ -15,7 +15,17 @@
       "Bash(git push *)",
       "Bash(npm test *)",
       "Bash(xargs ls)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(rtk git *)",
+      "Bash(/home/david/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.2/skills/subagent-driven-development/scripts/task-brief *)",
+      "Bash(rtk vitest *)",
+      "Bash(rtk grep *)",
+      "Bash(/home/david/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.2/skills/subagent-driven-development/scripts/review-package 76a5322 *)",
+      "Bash(/home/david/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.2/skills/subagent-driven-development/scripts/review-package 1ae3d31 *)",
+      "Bash(/home/david/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.2/skills/subagent-driven-development/scripts/review-package a621d46 *)",
+      "Bash(/home/david/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.2/skills/subagent-driven-development/scripts/review-package 955dd58 *)",
+      "Bash(/home/david/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.2/skills/subagent-driven-development/scripts/review-package 43ffd0b *)",
+      "Skill(code-review)"
     ]
   },
   "enabledMcpjsonServers": [
