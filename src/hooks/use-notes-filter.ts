@@ -72,7 +72,7 @@ export function useNotesFilter(notes: Note[]) {
   }, [notes, debouncedQuery, sortOrder, dateFilter, showPinnedOnly]);
 
   const hasActiveFilters =
-    searchQuery !== "" ||
+    debouncedQuery !== "" ||
     sortOrder !== "updatedAt" ||
     dateFilter !== "all" ||
     showPinnedOnly;

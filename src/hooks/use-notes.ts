@@ -62,12 +62,16 @@ export function useNotes() {
   }
 
   async function togglePin(id: string) {
-    const db = await getDB();
-    const existing = await db.get("notes", id);
-    if (!existing) return;
-    const updated: Note = { ...existing, pinned: !existing.pinned };
-    await db.put("notes", updated);
-    setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+    try {
+      const db = await getDB();
+      const existing = await db.get("notes", id);
+      if (!existing) return;
+      const updated: Note = { ...existing, pinned: !existing.pinned };
+      await db.put("notes", updated);
+      setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+    } catch (err) {
+      console.error("Failed to toggle pin:", err);
+    }
   }
 
   return { notes, createNote, updateNote, removeNote, togglePin };

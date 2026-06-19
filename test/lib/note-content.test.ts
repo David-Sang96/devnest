@@ -92,13 +92,14 @@ describe("extractPlainText", () => {
         { type: "paragraph", content: [{ type: "text", text: "Body text" }] },
       ],
     });
-    expect(extractPlainText(doc)).toBe("Title Body text");
+    expect(extractPlainText(doc)).toBe("Body text");
   });
 
   it("extracts text from nested Tiptap nodes", () => {
     const doc = JSON.stringify({
       type: "doc",
       content: [
+        { type: "paragraph", content: [{ type: "text", text: "Title" }] },
         {
           type: "paragraph",
           content: [

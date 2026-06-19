@@ -82,10 +82,8 @@ describe("useNotesFilter()", () => {
   it("hasActiveFilters is true when search is non-empty", () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => useNotesFilter([]));
-    act(() => {
-      result.current.setSearchQuery("hello");
-      vi.advanceTimersByTime(200);
-    });
+    act(() => { result.current.setSearchQuery("hello"); });
+    act(() => { vi.advanceTimersByTime(200); });
     expect(result.current.hasActiveFilters).toBe(true);
     vi.useRealTimers();
   });

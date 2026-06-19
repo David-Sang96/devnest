@@ -58,7 +58,8 @@ export function extractPlainText(raw: string): string {
   if (raw.trimStart().startsWith('{"type":"doc"')) {
     try {
       const doc = JSON.parse(raw) as DocNode;
-      return extractTextFromNode(doc).replace(/\s{2,}/g, " ").trim();
+      const body = (doc.content ?? []).slice(1);
+      return body.map(extractTextFromNode).join(" ").replace(/\s{2,}/g, " ").trim();
     } catch {
       return "";
     }

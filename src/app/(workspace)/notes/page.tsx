@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useNotes } from "@/hooks/use-notes";
@@ -23,8 +23,15 @@ export default function NotesPage() {
 
   const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
 
+  useEffect(() => {
+    if (selectedId !== null && !filteredNotes.some((n) => n.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [filteredNotes, selectedId]);
+
   async function handleNew() {
     const note = await createNote();
+    clearFilters();
     setSelectedId(note.id);
   }
 
