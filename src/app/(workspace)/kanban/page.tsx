@@ -4,24 +4,38 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Columns3 } from "lucide-react";
 import { useKanban } from "@/hooks/use-kanban";
+import { useKanbanLabels } from "@/hooks/use-kanban-labels";
 import {
   KanbanBoardView,
   BoardTab,
   CreateBoardButton,
 } from "@/components/kanban/kanban-board";
+import { CardDetailPanel } from "@/components/kanban/card-detail-panel";
 
 export default function KanbanPage() {
   const kanban = useKanban();
   const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const activeBoard =
     kanban.boards.find((b) => b.id === activeBoardId) ?? kanban.boards[0] ?? null;
+
+  const { labels, createLabel } = useKanbanLabels(activeBoard?.id ?? null);
+
+  const selectedCard =
+    selectedCardId != null
+      ? kanban.cards.find((c) => c.id === selectedCardId) ?? null
+      : null;
+
+  const boardCards = kanban.cards.filter((c) => c.boardId === activeBoard?.id);
+  const archivedCards = boardCards.filter((c) => c.archived);
 
   function handleDeleteBoard(id: string) {
     const remaining = kanban.boards.filter((b) => b.id !== id);
     if (activeBoardId === id || activeBoardId === null) {
       setActiveBoardId(remaining[0]?.id ?? null);
     }
+    if (selectedCard?.boardId === id) setSelectedCardId(null);
     kanban.removeBoard(id);
   }
 
@@ -64,7 +78,7 @@ export default function KanbanPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Board tabs + create button */}
+      {/* Board tabs */}
       <motion.div
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
@@ -76,7 +90,10 @@ export default function KanbanPage() {
             key={board.id}
             board={board}
             active={(activeBoard?.id ?? null) === board.id}
-            onClick={() => setActiveBoardId(board.id)}
+            onClick={() => {
+              setActiveBoardId(board.id);
+              setSelectedCardId(null);
+            }}
             onRename={(title) => kanban.updateBoard(board.id, { title })}
             onDelete={() => handleDeleteBoard(board.id)}
           />
@@ -89,38 +106,74 @@ export default function KanbanPage() {
         />
       </motion.div>
 
-      {/* Board content */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <AnimatePresence mode="wait">
-          {activeBoard && (
+      {/* Board + panel row */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Board scroll area */}
+        <div className="flex-1 overflow-auto">
+          <AnimatePresence mode="wait">
+            {activeBoard && (
+              <motion.div
+                key={activeBoard.id}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.18 }}
+                className="min-h-full p-4"
+              >
+                <KanbanBoardView
+                  board={activeBoard}
+                  columns={kanban.columns.filter(
+                    (c) => c.boardId === activeBoard.id
+                  )}
+                  cards={boardCards}
+                  archivedCards={archivedCards}
+                  onAddColumn={kanban.createColumn}
+                  onRemoveColumn={kanban.removeColumn}
+                  onRenameColumn={(id, title) =>
+                    kanban.updateColumn(id, { title })
+                  }
+                  onColorColumn={(id, color) =>
+                    kanban.updateColumn(id, { color })
+                  }
+                  onAddCard={kanban.createCard}
+                  onRemoveCard={kanban.removeCard}
+                  onUpdateCard={kanban.updateCard}
+                  onRestoreCard={kanban.restoreCard}
+                  onMoveCard={kanban.moveCard}
+                  onReorderCards={kanban.reorderCards}
+                  onReorderColumns={kanban.reorderColumns}
+                  onCardClick={setSelectedCardId}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Card detail panel — slides in from right */}
+        <AnimatePresence>
+          {selectedCard && (
             <motion.div
-              key={activeBoard.id}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.18 }}
-              className="flex h-full gap-3 p-4"
+              key="card-panel"
+              initial={{ x: "100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="flex-shrink-0"
             >
-              <KanbanBoardView
-                board={activeBoard}
-                columns={kanban.columns.filter(
-                  (c) => c.boardId === activeBoard.id
-                )}
-                cards={kanban.cards.filter((c) => c.boardId === activeBoard.id)}
-                onAddColumn={kanban.createColumn}
-                onRemoveColumn={kanban.removeColumn}
-                onRenameColumn={(id, title) =>
-                  kanban.updateColumn(id, { title })
-                }
-                onAddCard={kanban.createCard}
-                onRemoveCard={kanban.removeCard}
-                onMoveCard={kanban.moveCard}
-                onReorderCards={kanban.reorderCards}
-                onReorderColumns={kanban.reorderColumns}
-                onColorColumn={(id, color) =>
-                  kanban.updateColumn(id, { color })
-                }
-                onCardClick={() => {}}
+              <CardDetailPanel
+                card={selectedCard}
+                labels={labels}
+                onClose={() => setSelectedCardId(null)}
+                onUpdateCard={kanban.updateCard}
+                onArchive={(id) => {
+                  kanban.archiveCard(id);
+                  setSelectedCardId(null);
+                }}
+                onDelete={(id, colId) => {
+                  kanban.removeCard(id, colId);
+                  setSelectedCardId(null);
+                }}
+                onCreateLabel={createLabel}
               />
             </motion.div>
           )}

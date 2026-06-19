@@ -21,6 +21,7 @@ import {
 import { Plus, X } from "lucide-react";
 import type { KanbanBoard, KanbanColumn, KanbanCard } from "@/types/kanban";
 import { KanbanColumnItem } from "./kanban-column";
+import { ArchiveDrawer } from "./archive-drawer";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -51,6 +52,12 @@ interface KanbanBoardProps {
   onReorderColumns: (boardId: string, newColumnOrder: string[]) => void;
   onColorColumn: (id: string, color: string | undefined) => void;
   onCardClick: (cardId: string) => void;
+  onUpdateCard: (
+    id: string,
+    changes: Partial<Pick<KanbanCard, "title" | "description" | "priority" | "dueDate" | "labelIds" | "archived">>
+  ) => void;
+  onRestoreCard: (id: string) => void;
+  archivedCards: KanbanCard[];
 }
 
 export function KanbanBoardView({
@@ -67,6 +74,9 @@ export function KanbanBoardView({
   onReorderColumns,
   onColorColumn,
   onCardClick,
+  onUpdateCard: _onUpdateCard,
+  onRestoreCard,
+  archivedCards,
 }: KanbanBoardProps) {
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColTitle, setNewColTitle] = useState("");
@@ -158,6 +168,7 @@ export function KanbanBoardView({
   }
 
   return (
+    <>
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
@@ -165,7 +176,7 @@ export function KanbanBoardView({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 h-full items-start">
+      <div className="flex gap-3 items-start">
         <SortableContext
           items={board.columnOrder}
           strategy={horizontalListSortingStrategy}
@@ -266,6 +277,14 @@ export function KanbanBoardView({
         )}
       </DragOverlay>
     </DndContext>
+
+    <ArchiveDrawer
+      cards={archivedCards}
+      columns={columns}
+      onRestore={onRestoreCard}
+      onDelete={onRemoveCard}
+    />
+    </>
   );
 }
 
