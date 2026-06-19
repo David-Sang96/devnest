@@ -28,6 +28,7 @@ interface CardDetailPanelProps {
   onArchive: (id: string) => void;
   onDelete: (id: string, columnId: string) => void;
   onCreateLabel: (name: string, color: string) => void;
+  onRemoveLabel?: (id: string) => void;
 }
 
 export function CardDetailPanel({
@@ -38,6 +39,7 @@ export function CardDetailPanel({
   onArchive,
   onDelete,
   onCreateLabel,
+  onRemoveLabel,
 }: CardDetailPanelProps) {
   const [title, setTitle] = useState(card.title);
   const [showLabelPicker, setShowLabelPicker] = useState(false);
@@ -209,6 +211,7 @@ export function CardDetailPanel({
                 onToggle={handleToggleLabel}
                 onCreateLabel={onCreateLabel}
                 onClose={() => setShowLabelPicker(false)}
+                onRemoveLabel={onRemoveLabel}
               />
             )}
           </div>

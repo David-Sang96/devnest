@@ -21,6 +21,7 @@ interface LabelPickerProps {
   onToggle: (labelId: string) => void;
   onCreateLabel: (name: string, color: string) => void;
   onClose: () => void;
+  onRemoveLabel?: (id: string) => void;
 }
 
 export function LabelPicker({
@@ -29,6 +30,7 @@ export function LabelPicker({
   onToggle,
   onCreateLabel,
   onClose,
+  onRemoveLabel,
 }: LabelPickerProps) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
@@ -69,6 +71,22 @@ export function LabelPicker({
               <span className="flex-1 truncate text-sm text-foreground">
                 {label.name}
               </span>
+              {onRemoveLabel && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (selectedIds.includes(label.id)) {
+                      onToggle(label.id);
+                    }
+                    onRemoveLabel(label.id);
+                  }}
+                  className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
+                  aria-label={`Delete label ${label.name}`}
+                >
+                  ×
+                </button>
+              )}
             </label>
           ))}
         </div>

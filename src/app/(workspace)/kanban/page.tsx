@@ -20,7 +20,7 @@ export default function KanbanPage() {
   const activeBoard =
     kanban.boards.find((b) => b.id === activeBoardId) ?? kanban.boards[0] ?? null;
 
-  const { labels, createLabel } = useKanbanLabels(activeBoard?.id ?? null);
+  const { labels, createLabel, removeLabel } = useKanbanLabels(activeBoard?.id ?? null);
 
   const selectedCard =
     selectedCardId != null
@@ -29,6 +29,19 @@ export default function KanbanPage() {
 
   const boardCards = kanban.cards.filter((c) => c.boardId === activeBoard?.id);
   const archivedCards = boardCards.filter((c) => c.archived);
+
+  function handleRemoveLabel(labelId: string) {
+    removeLabel(labelId);
+    kanban.cards
+      .filter((c) => c.boardId === activeBoard?.id)
+      .forEach((card) => {
+        if (card.labelIds?.includes(labelId)) {
+          kanban.updateCard(card.id, {
+            labelIds: card.labelIds.filter((id) => id !== labelId),
+          });
+        }
+      });
+  }
 
   function handleDeleteBoard(id: string) {
     const remaining = kanban.boards.filter((b) => b.id !== id);
@@ -174,6 +187,7 @@ export default function KanbanPage() {
                   setSelectedCardId(null);
                 }}
                 onCreateLabel={createLabel}
+                onRemoveLabel={handleRemoveLabel}
               />
             </motion.div>
           )}
