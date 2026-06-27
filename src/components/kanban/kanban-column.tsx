@@ -165,11 +165,12 @@ export function KanbanColumnItem({
               <input
                 type="number"
                 min="1"
+                max="20"
                 placeholder="No limit"
                 defaultValue={column.wipLimit ?? ""}
                 onBlur={(e) => {
                   const val = e.target.value.trim();
-                  onSetWipLimit(column.id, val ? Math.max(1, parseInt(val, 10)) : undefined);
+                  onSetWipLimit(column.id, val ? Math.min(20, Math.max(1, parseInt(val, 10))) : undefined);
                 }}
                 className="w-20 rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               />

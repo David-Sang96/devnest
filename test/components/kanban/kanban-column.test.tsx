@@ -130,6 +130,60 @@ describe("<KanbanColumnItem />", () => {
     });
   });
 
+  describe("WIP limit badge", () => {
+    it("shows count/limit format with no amber or red classes when under the limit", () => {
+      const cards: KanbanCard[] = [
+        { id: "c1", columnId: "col1", boardId: "b1", title: "Card 1", description: "", createdAt: 1, updatedAt: 1 },
+      ];
+      render(
+        <KanbanColumnItem
+          {...defaultProps}
+          column={makeColumn({ cardOrder: ["c1"], wipLimit: 3 })}
+          cards={cards}
+        />
+      );
+      const badge = screen.getByText("1/3");
+      expect(badge).toBeInTheDocument();
+      expect(badge.className).not.toMatch(/amber/);
+      expect(badge.className).not.toMatch(/red|destructive/);
+    });
+
+    it("applies amber styling when active count equals the WIP limit", () => {
+      const cards: KanbanCard[] = [
+        { id: "c1", columnId: "col1", boardId: "b1", title: "Card 1", description: "", createdAt: 1, updatedAt: 1 },
+        { id: "c2", columnId: "col1", boardId: "b1", title: "Card 2", description: "", createdAt: 1, updatedAt: 1 },
+      ];
+      render(
+        <KanbanColumnItem
+          {...defaultProps}
+          column={makeColumn({ cardOrder: ["c1", "c2"], wipLimit: 2 })}
+          cards={cards}
+        />
+      );
+      const badge = screen.getByText("2/2");
+      expect(badge).toBeInTheDocument();
+      expect(badge.className).toMatch(/amber/);
+    });
+
+    it("applies red/destructive styling when active count exceeds the WIP limit", () => {
+      const cards: KanbanCard[] = [
+        { id: "c1", columnId: "col1", boardId: "b1", title: "Card 1", description: "", createdAt: 1, updatedAt: 1 },
+        { id: "c2", columnId: "col1", boardId: "b1", title: "Card 2", description: "", createdAt: 1, updatedAt: 1 },
+        { id: "c3", columnId: "col1", boardId: "b1", title: "Card 3", description: "", createdAt: 1, updatedAt: 1 },
+      ];
+      render(
+        <KanbanColumnItem
+          {...defaultProps}
+          column={makeColumn({ cardOrder: ["c1", "c2", "c3"], wipLimit: 2 })}
+          cards={cards}
+        />
+      );
+      const badge = screen.getByText("3/2");
+      expect(badge).toBeInTheDocument();
+      expect(badge.className).toMatch(/red|destructive/);
+    });
+  });
+
   describe("column color", () => {
     it("renders palette / column color button", () => {
       render(<KanbanColumnItem {...defaultProps} />);
