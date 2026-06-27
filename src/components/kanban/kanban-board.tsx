@@ -52,6 +52,7 @@ interface KanbanBoardProps {
   onReorderColumns: (boardId: string, newColumnOrder: string[]) => void;
   onColorColumn: (id: string, color: string | undefined) => void;
   onCardClick: (cardId: string) => void;
+  onSetWipLimit: (id: string, limit: number | undefined) => void;
   onUpdateCard: (
     id: string,
     changes: Partial<Pick<KanbanCard, "title" | "description" | "priority" | "dueDate" | "labelIds" | "archived">>
@@ -74,6 +75,7 @@ export function KanbanBoardView({
   onReorderColumns,
   onColorColumn,
   onCardClick,
+  onSetWipLimit,
   onUpdateCard: _onUpdateCard,
   onRestoreCard,
   archivedCards,
@@ -195,6 +197,7 @@ export function KanbanBoardView({
                 onRenameColumn={onRenameColumn}
                 onColorColumn={onColorColumn}
                 onCardClick={onCardClick}
+                onSetWipLimit={onSetWipLimit}
               />
             ))}
           </AnimatePresence>

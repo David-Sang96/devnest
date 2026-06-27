@@ -176,6 +176,9 @@ export default function KanbanPage() {
                   onColorColumn={(id, color) =>
                     kanban.updateColumn(id, { color })
                   }
+                  onSetWipLimit={(id, limit) =>
+                    kanban.updateColumn(id, { wipLimit: limit })
+                  }
                   onAddCard={kanban.createCard}
                   onRemoveCard={kanban.removeCard}
                   onUpdateCard={kanban.updateCard}

@@ -116,7 +116,7 @@ export function useKanban() {
   }, []);
 
   const updateColumn = useCallback(
-    async (id: string, changes: Partial<Pick<KanbanColumn, "title" | "cardOrder" | "color">>) => {
+    async (id: string, changes: Partial<Pick<KanbanColumn, "title" | "cardOrder" | "color" | "wipLimit">>) => {
       const db = await getDB();
       setState((prev) => {
         const columns = prev.columns.map((c) =>

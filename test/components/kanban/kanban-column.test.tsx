@@ -25,6 +25,7 @@ const defaultProps = {
   onRenameColumn: vi.fn(),
   onColorColumn: vi.fn(),
   onCardClick: vi.fn(),
+  onSetWipLimit: vi.fn(),
 };
 
 describe("<KanbanColumnItem />", () => {

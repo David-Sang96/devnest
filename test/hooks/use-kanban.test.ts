@@ -645,6 +645,22 @@ describe("moveBetweenBoards", () => {
   });
 });
 
+// ─── WIP limits ──────────────────────────────────────────────────────────────
+
+describe("WIP limits", () => {
+  it("updateColumn persists wipLimit to IDB", async () => {
+    const col = makeColumn({ id: "col1", boardId: "b1" });
+    seedAndConfigureMocks([], [col]);
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.columns).toHaveLength(1));
+    await act(async () => {
+      await result.current.updateColumn("col1", { wipLimit: 3 });
+    });
+    const updated = result.current.columns.find((c) => c.id === "col1");
+    expect(updated?.wipLimit).toBe(3);
+  });
+});
+
 describe("error handling", () => {
   it("shows toast.error when createBoard IDB write fails", async () => {
     const { toast } = await import("sonner");

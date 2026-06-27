@@ -31,6 +31,7 @@ interface KanbanColumnProps {
   onRenameColumn: (id: string, title: string) => void;
   onColorColumn: (id: string, color: string | undefined) => void;
   onCardClick: (cardId: string) => void;
+  onSetWipLimit: (id: string, limit: number | undefined) => void;
 }
 
 export function KanbanColumnItem({
@@ -42,6 +43,7 @@ export function KanbanColumnItem({
   onRenameColumn,
   onColorColumn,
   onCardClick,
+  onSetWipLimit,
 }: KanbanColumnProps) {
   const [editing, setEditing] = useState(false);
   const [titleValue, setTitleValue] = useState(column.title);
@@ -127,35 +129,51 @@ export function KanbanColumnItem({
         </button>
 
         {editing ? (
-          <div className="flex flex-1 items-center gap-1 min-w-0">
-            <input
-              autoFocus
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 min-w-0 rounded border border-border bg-background px-2 py-0.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <button
-              onClick={commitRename}
-              className={cn(
-                "shrink-0 transition-colors",
-                hasColor ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Check className="size-3.5" />
-            </button>
-            <button
-              onClick={() => {
-                setTitleValue(column.title);
-                setEditing(false);
-              }}
-              className={cn(
-                "shrink-0 transition-colors",
-                hasColor ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <X className="size-3.5" />
-            </button>
+          <div className="flex flex-1 flex-col gap-1 min-w-0">
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 min-w-0 rounded border border-border bg-background px-2 py-0.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                onClick={commitRename}
+                className={cn(
+                  "shrink-0 transition-colors",
+                  hasColor ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Check className="size-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  setTitleValue(column.title);
+                  setEditing(false);
+                }}
+                className={cn(
+                  "shrink-0 transition-colors",
+                  hasColor ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={cn("text-xs", hasColor ? "text-white/70" : "text-muted-foreground")}>WIP</span>
+              <input
+                type="number"
+                min="1"
+                placeholder="No limit"
+                defaultValue={column.wipLimit ?? ""}
+                onBlur={(e) => {
+                  const val = e.target.value.trim();
+                  onSetWipLimit(column.id, val ? Math.max(1, parseInt(val, 10)) : undefined);
+                }}
+                className="w-20 rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
           </div>
         ) : (
           <>
@@ -171,16 +189,29 @@ export function KanbanColumnItem({
             </span>
 
             {/* Card count badge */}
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-1.5 py-0 text-xs tabular-nums",
-                hasColor
-                  ? "bg-black/20 text-white/90"
-                  : "bg-muted text-muted-foreground"
-              )}
-            >
-              {activeCards.length}
-            </span>
+            {(() => {
+              const count = activeCards.length;
+              const limit = column.wipLimit;
+              const overLimit = limit !== undefined && count > limit;
+              const atLimit = limit !== undefined && count === limit;
+              return (
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-1.5 py-0 text-xs tabular-nums font-medium",
+                    overLimit
+                      ? "bg-destructive/20 text-destructive"
+                      : atLimit
+                      ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                      : hasColor
+                      ? "bg-black/20 text-white/90"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                  title={limit !== undefined ? `WIP limit: ${limit}` : undefined}
+                >
+                  {limit !== undefined ? `${count}/${limit}` : count}
+                </span>
+              );
+            })()}
 
             {/* Color picker trigger */}
             <div className="relative shrink-0">

@@ -14,6 +14,7 @@ export interface KanbanColumn {
   title: string;
   cardOrder: string[];
   color?: string;
+  wipLimit?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -38,4 +39,5 @@ export interface KanbanLabel {
   name: string;
   color: string;
   createdAt: number;
+  updatedAt: number;
 }
