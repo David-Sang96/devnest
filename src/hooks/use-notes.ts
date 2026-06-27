@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { getDB } from "@/lib/db";
 import type { Note } from "@/types";
 import { extractTitle } from "@/lib/note-content";
@@ -11,7 +12,8 @@ export function useNotes() {
   useEffect(() => {
     getDB()
       .then((db) => db.getAllFromIndex("notes", "updatedAt"))
-      .then((all) => setNotes(all.reverse()));
+      .then((all) => setNotes(all.reverse()))
+      .catch(() => toast.error("Failed to load notes"));
   }, []);
 
   async function createNote(): Promise<Note> {
@@ -23,42 +25,45 @@ export function useNotes() {
       createdAt: now,
       updatedAt: now,
     };
-    const db = await getDB();
-    await db.put("notes", note);
-    setNotes((prev) => [note, ...prev]);
+    try {
+      const db = await getDB();
+      await db.put("notes", note);
+      setNotes((prev) => [note, ...prev]);
+    } catch {
+      toast.error("Failed to save");
+    }
     return note;
   }
 
   async function updateNote(id: string, changes: Partial<Pick<Note, "content" | "title">>) {
-    const db = await getDB();
-    const existing = await db.get("notes", id);
-    if (!existing) return;
-
-    let derivedTitle = existing.title;
-    if (changes.title !== undefined) {
-      derivedTitle = changes.title.trim() || "Untitled";
-    } else if (changes.content !== undefined) {
-      derivedTitle = extractTitle(changes.content);
+    try {
+      const db = await getDB();
+      const existing = await db.get("notes", id);
+      if (!existing) return;
+      let derivedTitle = existing.title;
+      if (changes.title !== undefined) {
+        derivedTitle = changes.title.trim() || "Untitled";
+      } else if (changes.content !== undefined) {
+        derivedTitle = extractTitle(changes.content);
+      }
+      const updated: Note = { ...existing, ...changes, title: derivedTitle, updatedAt: Date.now() };
+      await db.put("notes", updated);
+      setNotes((prev) =>
+        prev.map((n) => (n.id === id ? updated : n)).sort((a, b) => b.updatedAt - a.updatedAt)
+      );
+    } catch {
+      toast.error("Failed to save");
     }
-
-    const updated: Note = {
-      ...existing,
-      ...changes,
-      title: derivedTitle,
-      updatedAt: Date.now(),
-    };
-    await db.put("notes", updated);
-    setNotes((prev) =>
-      prev
-        .map((n) => (n.id === id ? updated : n))
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-    );
   }
 
   async function removeNote(id: string) {
-    const db = await getDB();
-    await db.delete("notes", id);
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+    try {
+      const db = await getDB();
+      await db.delete("notes", id);
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+    } catch {
+      toast.error("Failed to save");
+    }
   }
 
   async function togglePin(id: string) {
@@ -69,8 +74,8 @@ export function useNotes() {
       const updated: Note = { ...existing, pinned: !existing.pinned };
       await db.put("notes", updated);
       setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
-    } catch (err) {
-      console.error("Failed to toggle pin:", err);
+    } catch {
+      toast.error("Failed to save");
     }
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import type { KanbanBoard, KanbanColumn, KanbanCard } from "@/types/kanban";
 import { getDB } from "@/lib/db";
 
@@ -32,17 +33,15 @@ export function useKanban() {
   }, []);
 
   const createBoard = useCallback(async (title: string) => {
-    const db = await getDB();
     const now = Date.now();
-    const board: KanbanBoard = {
-      id: crypto.randomUUID(),
-      title,
-      columnOrder: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    await db.put("kanban_boards", board);
-    setState((prev) => ({ ...prev, boards: [...prev.boards, board] }));
+    const board: KanbanBoard = { id: crypto.randomUUID(), title, columnOrder: [], createdAt: now, updatedAt: now };
+    try {
+      const db = await getDB();
+      await db.put("kanban_boards", board);
+      setState((prev) => ({ ...prev, boards: [...prev.boards, board] }));
+    } catch {
+      toast.error("Failed to save");
+    }
     return board;
   }, []);
 
@@ -54,7 +53,7 @@ export function useKanban() {
           b.id === id ? { ...b, ...changes, updatedAt: Date.now() } : b
         );
         const updated = boards.find((b) => b.id === id)!;
-        db.put("kanban_boards", updated);
+        db.put("kanban_boards", updated).catch(() => toast.error("Failed to save"));
         return { ...prev, boards };
       });
     },
@@ -62,55 +61,50 @@ export function useKanban() {
   );
 
   const removeBoard = useCallback(async (id: string) => {
-    const db = await getDB();
-    const tx = db.transaction(
-      ["kanban_boards", "kanban_columns", "kanban_cards"],
-      "readwrite"
-    );
-    await tx.objectStore("kanban_boards").delete(id);
-    const colIds = (await tx.objectStore("kanban_columns").index("boardId").getAllKeys(id)) as string[];
-    for (const colId of colIds) {
-      const cardKeys = (await tx.objectStore("kanban_cards").index("columnId").getAllKeys(colId)) as string[];
-      for (const cardKey of cardKeys) {
-        await tx.objectStore("kanban_cards").delete(cardKey);
+    try {
+      const db = await getDB();
+      const tx = db.transaction(
+        ["kanban_boards", "kanban_columns", "kanban_cards", "kanban_labels"],
+        "readwrite"
+      );
+      await tx.objectStore("kanban_boards").delete(id);
+      const colIds = (await tx.objectStore("kanban_columns").index("boardId").getAllKeys(id)) as string[];
+      for (const colId of colIds) {
+        const cardKeys = (await tx.objectStore("kanban_cards").index("columnId").getAllKeys(colId)) as string[];
+        for (const cardKey of cardKeys) await tx.objectStore("kanban_cards").delete(cardKey);
+        await tx.objectStore("kanban_columns").delete(colId);
       }
-      await tx.objectStore("kanban_columns").delete(colId);
+      const labelKeys = (await tx.objectStore("kanban_labels").index("boardId").getAllKeys(id)) as string[];
+      for (const labelKey of labelKeys) await tx.objectStore("kanban_labels").delete(labelKey);
+      await tx.done;
+      setState((prev) => ({
+        boards: prev.boards.filter((b) => b.id !== id),
+        columns: prev.columns.filter((c) => c.boardId !== id),
+        cards: prev.cards.filter((c) => c.boardId !== id),
+      }));
+    } catch {
+      toast.error("Failed to save");
     }
-    await tx.done;
-    setState((prev) => ({
-      boards: prev.boards.filter((b) => b.id !== id),
-      columns: prev.columns.filter((c) => c.boardId !== id),
-      cards: prev.cards.filter((c) => c.boardId !== id),
-    }));
   }, []);
 
   const createColumn = useCallback(async (boardId: string, title: string) => {
-    const db = await getDB();
     const now = Date.now();
-    const column: KanbanColumn = {
-      id: crypto.randomUUID(),
-      boardId,
-      title,
-      cardOrder: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    await db.put("kanban_columns", column);
-
-    setState((prev) => {
-      const boards = prev.boards.map((b) => {
-        if (b.id !== boardId) return b;
-        const updated = {
-          ...b,
-          columnOrder: [...b.columnOrder, column.id],
-          updatedAt: now,
-        };
-        db.put("kanban_boards", updated);
-        return updated;
+    const column: KanbanColumn = { id: crypto.randomUUID(), boardId, title, cardOrder: [], createdAt: now, updatedAt: now };
+    try {
+      const db = await getDB();
+      await db.put("kanban_columns", column);
+      setState((prev) => {
+        const boards = prev.boards.map((b) => {
+          if (b.id !== boardId) return b;
+          const updated = { ...b, columnOrder: [...b.columnOrder, column.id], updatedAt: now };
+          db.put("kanban_boards", updated).catch(() => toast.error("Failed to save"));
+          return updated;
+        });
+        return { ...prev, boards, columns: [...prev.columns, column] };
       });
-      return { ...prev, boards, columns: [...prev.columns, column] };
-    });
-
+    } catch {
+      toast.error("Failed to save");
+    }
     return column;
   }, []);
 
@@ -122,7 +116,7 @@ export function useKanban() {
           c.id === id ? { ...c, ...changes, updatedAt: Date.now() } : c
         );
         const updated = columns.find((c) => c.id === id)!;
-        db.put("kanban_columns", updated);
+        db.put("kanban_columns", updated).catch(() => toast.error("Failed to save"));
         return { ...prev, columns };
       });
     },
@@ -130,67 +124,56 @@ export function useKanban() {
   );
 
   const removeColumn = useCallback(async (id: string, boardId: string) => {
-    const db = await getDB();
-    const tx = db.transaction(
-      ["kanban_boards", "kanban_columns", "kanban_cards"],
-      "readwrite"
-    );
-    await tx.objectStore("kanban_columns").delete(id);
-    const cardKeys = (await tx.objectStore("kanban_cards").index("columnId").getAllKeys(id)) as string[];
-    for (const cardKey of cardKeys) {
-      await tx.objectStore("kanban_cards").delete(cardKey);
+    try {
+      const db = await getDB();
+      const tx = db.transaction(
+        ["kanban_boards", "kanban_columns", "kanban_cards"],
+        "readwrite"
+      );
+      await tx.objectStore("kanban_columns").delete(id);
+      const cardKeys = (await tx.objectStore("kanban_cards").index("columnId").getAllKeys(id)) as string[];
+      for (const cardKey of cardKeys) await tx.objectStore("kanban_cards").delete(cardKey);
+      const board = await tx.objectStore("kanban_boards").get(boardId);
+      if (board) {
+        const updated = {
+          ...board,
+          columnOrder: board.columnOrder.filter((cid: string) => cid !== id),
+          updatedAt: Date.now(),
+        };
+        await tx.objectStore("kanban_boards").put(updated);
+      }
+      await tx.done;
+      setState((prev) => ({
+        boards: prev.boards.map((b) =>
+          b.id === boardId ? { ...b, columnOrder: b.columnOrder.filter((cid) => cid !== id) } : b
+        ),
+        columns: prev.columns.filter((c) => c.id !== id),
+        cards: prev.cards.filter((c) => c.columnId !== id),
+      }));
+    } catch {
+      toast.error("Failed to save");
     }
-    const board = await tx.objectStore("kanban_boards").get(boardId);
-    if (board) {
-      const updated = {
-        ...board,
-        columnOrder: board.columnOrder.filter((cid: string) => cid !== id),
-        updatedAt: Date.now(),
-      };
-      await tx.objectStore("kanban_boards").put(updated);
-    }
-    await tx.done;
-
-    setState((prev) => ({
-      boards: prev.boards.map((b) =>
-        b.id === boardId
-          ? { ...b, columnOrder: b.columnOrder.filter((cid) => cid !== id) }
-          : b
-      ),
-      columns: prev.columns.filter((c) => c.id !== id),
-      cards: prev.cards.filter((c) => c.columnId !== id),
-    }));
   }, []);
 
   const createCard = useCallback(
     async (columnId: string, boardId: string, title: string) => {
-      const db = await getDB();
       const now = Date.now();
-      const card: KanbanCard = {
-        id: crypto.randomUUID(),
-        columnId,
-        boardId,
-        title,
-        description: "",
-        createdAt: now,
-        updatedAt: now,
-      };
-      await db.put("kanban_cards", card);
-
-      setState((prev) => {
-        const columns = prev.columns.map((c) => {
-          if (c.id !== columnId) return c;
-          const updated = {
-            ...c,
-            cardOrder: [...c.cardOrder, card.id],
-            updatedAt: now,
-          };
-          db.put("kanban_columns", updated);
-          return updated;
+      const card: KanbanCard = { id: crypto.randomUUID(), columnId, boardId, title, description: "", createdAt: now, updatedAt: now };
+      try {
+        const db = await getDB();
+        await db.put("kanban_cards", card);
+        setState((prev) => {
+          const columns = prev.columns.map((c) => {
+            if (c.id !== columnId) return c;
+            const updated = { ...c, cardOrder: [...c.cardOrder, card.id], updatedAt: now };
+            db.put("kanban_columns", updated).catch(() => toast.error("Failed to save"));
+            return updated;
+          });
+          return { ...prev, columns, cards: [...prev.cards, card] };
         });
-        return { ...prev, columns, cards: [...prev.cards, card] };
-      });
-
+      } catch {
+        toast.error("Failed to save");
+      }
       return card;
     },
     []
@@ -204,7 +187,7 @@ export function useKanban() {
           c.id === id ? { ...c, ...changes, updatedAt: Date.now() } : c
         );
         const updated = cards.find((c) => c.id === id)!;
-        db.put("kanban_cards", updated);
+        db.put("kanban_cards", updated).catch(() => toast.error("Failed to save"));
         return { ...prev, cards };
       });
     },
@@ -212,21 +195,21 @@ export function useKanban() {
   );
 
   const removeCard = useCallback(async (id: string, columnId: string) => {
-    const db = await getDB();
-    await db.delete("kanban_cards", id);
-    setState((prev) => {
-      const columns = prev.columns.map((c) => {
-        if (c.id !== columnId) return c;
-        const updated = {
-          ...c,
-          cardOrder: c.cardOrder.filter((cid) => cid !== id),
-          updatedAt: Date.now(),
-        };
-        db.put("kanban_columns", updated);
-        return updated;
+    try {
+      const db = await getDB();
+      await db.delete("kanban_cards", id);
+      setState((prev) => {
+        const columns = prev.columns.map((c) => {
+          if (c.id !== columnId) return c;
+          const updated = { ...c, cardOrder: c.cardOrder.filter((cid) => cid !== id), updatedAt: Date.now() };
+          db.put("kanban_columns", updated).catch(() => toast.error("Failed to save"));
+          return updated;
+        });
+        return { ...prev, columns, cards: prev.cards.filter((c) => c.id !== id) };
       });
-      return { ...prev, columns, cards: prev.cards.filter((c) => c.id !== id) };
-    });
+    } catch {
+      toast.error("Failed to save");
+    }
   }, []);
 
   const moveCard = useCallback(
@@ -244,17 +227,17 @@ export function useKanban() {
           c.id === cardId ? { ...c, columnId: toColumnId, updatedAt: now } : c
         );
         const updated = cards.find((c) => c.id === cardId)!;
-        db.put("kanban_cards", updated);
+        db.put("kanban_cards", updated).catch(() => toast.error("Failed to save"));
 
         const columns = prev.columns.map((c) => {
           if (c.id === fromColumnId) {
             const col = { ...c, cardOrder: fromCardOrder, updatedAt: now };
-            db.put("kanban_columns", col);
+            db.put("kanban_columns", col).catch(() => toast.error("Failed to save"));
             return col;
           }
           if (c.id === toColumnId) {
             const col = { ...c, cardOrder: newCardOrder, updatedAt: now };
-            db.put("kanban_columns", col);
+            db.put("kanban_columns", col).catch(() => toast.error("Failed to save"));
             return col;
           }
           return c;
@@ -273,7 +256,7 @@ export function useKanban() {
         const columns = prev.columns.map((c) => {
           if (c.id !== columnId) return c;
           const updated = { ...c, cardOrder: newCardOrder, updatedAt: Date.now() };
-          db.put("kanban_columns", updated);
+          db.put("kanban_columns", updated).catch(() => toast.error("Failed to save"));
           return updated;
         });
         return { ...prev, columns };
@@ -289,7 +272,7 @@ export function useKanban() {
         const boards = prev.boards.map((b) => {
           if (b.id !== boardId) return b;
           const updated = { ...b, columnOrder: newColumnOrder, updatedAt: Date.now() };
-          db.put("kanban_boards", updated);
+          db.put("kanban_boards", updated).catch(() => toast.error("Failed to save"));
           return updated;
         });
         return { ...prev, boards };
@@ -306,7 +289,7 @@ export function useKanban() {
           c.id === id ? { ...c, archived: true, updatedAt: Date.now() } : c
         );
         const updated = cards.find((c) => c.id === id)!;
-        db.put("kanban_cards", updated);
+        db.put("kanban_cards", updated).catch(() => toast.error("Failed to save"));
         return { ...prev, cards };
       });
     },
@@ -321,7 +304,7 @@ export function useKanban() {
           c.id === id ? { ...c, archived: false, updatedAt: Date.now() } : c
         );
         const updated = cards.find((c) => c.id === id)!;
-        db.put("kanban_cards", updated);
+        db.put("kanban_cards", updated).catch(() => toast.error("Failed to save"));
         return { ...prev, cards };
       });
     },

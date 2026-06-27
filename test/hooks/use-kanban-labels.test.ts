@@ -44,6 +44,7 @@ function makeLabel(overrides: Partial<KanbanLabel> = {}): KanbanLabel {
     name: "label",
     color: "#ef4444",
     createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides,
   };
 }
@@ -128,5 +129,16 @@ describe("useKanbanLabels()", () => {
 
     rerender({ boardId: "board-2" });
     await waitFor(() => expect(result.current.labels[0].id).toBe("l2"));
+  });
+
+  describe("error handling", () => {
+    it("shows toast.error when createLabel IDB write fails", async () => {
+      const { toast } = await import("sonner");
+      vi.spyOn(toast, "error");
+      mockDB.put.mockRejectedValueOnce(new Error("IDB failure"));
+      const { result } = renderHook(() => useKanbanLabels("board-1"));
+      await act(async () => { await result.current.createLabel("bug", "#ef4444"); });
+      expect(toast.error).toHaveBeenCalledWith("Failed to save");
+    });
   });
 });

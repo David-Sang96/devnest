@@ -576,3 +576,25 @@ describe("restoreCard()", () => {
     expect(result.current.cards[0].archived).toBe(false);
   });
 });
+
+describe("error handling", () => {
+  it("shows toast.error when createBoard IDB write fails", async () => {
+    const { toast } = await import("sonner");
+    vi.spyOn(toast, "error");
+    mockDB.put.mockRejectedValueOnce(new Error("IDB failure"));
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(mockDB.getAll).toHaveBeenCalled());
+    await act(async () => { await result.current.createBoard("Test"); });
+    expect(toast.error).toHaveBeenCalledWith("Failed to save");
+  });
+
+  it("shows toast.error when removeCard IDB delete fails", async () => {
+    const { toast } = await import("sonner");
+    vi.spyOn(toast, "error");
+    mockDB.delete.mockRejectedValueOnce(new Error("IDB failure"));
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(mockDB.getAll).toHaveBeenCalled());
+    await act(async () => { await result.current.removeCard("c1", "col1"); });
+    expect(toast.error).toHaveBeenCalledWith("Failed to save");
+  });
+});
