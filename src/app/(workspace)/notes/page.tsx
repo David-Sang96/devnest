@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useNotes } from "@/hooks/use-notes";
@@ -8,9 +8,10 @@ import { useNotesFilter } from "@/hooks/use-notes-filter";
 import { NoteList } from "@/components/notes/note-list";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { NoteEmptyState } from "@/components/notes/note-empty-state";
+import { Loader2 } from "lucide-react";
 
 export default function NotesPage() {
-  const { notes, createNote, updateNote, removeNote, togglePin } = useNotes();
+  const { notes, isLoading, createNote, updateNote, removeNote, togglePin } = useNotes();
   const {
     filteredNotes,
     searchQuery, setSearchQuery,
@@ -20,6 +21,7 @@ export default function NotesPage() {
     hasActiveFilters, clearFilters,
   } = useNotesFilter(notes);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
 
@@ -29,11 +31,27 @@ export default function NotesPage() {
     }
   }, [filteredNotes, selectedId]);
 
-  async function handleNew() {
+  const handleNew = useCallback(async () => {
     const note = await createNote();
     clearFilters();
     setSelectedId(note.id);
-  }
+  }, [createNote, clearFilters]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === "n") {
+        e.preventDefault();
+        handleNew();
+      } else if (e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [handleNew]);
 
   async function handleDelete(id: string) {
     await removeNote(id);
@@ -48,24 +66,31 @@ export default function NotesPage() {
           selectedNote ? "hidden md:flex md:w-64" : "flex w-full md:w-64"
         )}
       >
-        <NoteList
-          notes={filteredNotes}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onNew={handleNew}
-          onDelete={handleDelete}
-          onTogglePin={togglePin}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          sortOrder={sortOrder}
-          onSortChange={setSortOrder}
-          dateFilter={dateFilter}
-          onDateFilterChange={setDateFilter}
-          showPinnedOnly={showPinnedOnly}
-          onShowPinnedOnlyChange={setShowPinnedOnly}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-        />
+        {isLoading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <NoteList
+            notes={filteredNotes}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onNew={handleNew}
+            onDelete={handleDelete}
+            onTogglePin={togglePin}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
+            dateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+            showPinnedOnly={showPinnedOnly}
+            onShowPinnedOnlyChange={setShowPinnedOnly}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
+            searchRef={searchRef}
+          />
+        )}
       </div>
 
       <div

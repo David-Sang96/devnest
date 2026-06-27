@@ -130,6 +130,12 @@ describe("useKanban() — initial load", () => {
     expect(result.current.boards).toEqual([]);
   });
 
+  it("isLoading is true before IDB resolves, false after", async () => {
+    const { result } = renderHook(() => useKanban());
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  });
+
   it("loads boards from the DB on mount", async () => {
     const board = makeBoard({ id: "b1" });
     seedAndConfigureMocks([board]);

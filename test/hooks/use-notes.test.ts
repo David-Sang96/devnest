@@ -63,6 +63,12 @@ beforeEach(() => {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("useNotes()", () => {
+  it("isLoading is true before IDB resolves, false after", async () => {
+    const { result } = renderHook(() => useNotes());
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  });
+
   it("loads notes from the DB on mount", async () => {
     const note = makeNote({ title: "Hello" });
     seedStore([note]);

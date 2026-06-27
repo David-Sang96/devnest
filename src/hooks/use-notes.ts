@@ -8,12 +8,14 @@ import { extractTitle } from "@/lib/note-content";
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     getDB()
       .then((db) => db.getAllFromIndex("notes", "updatedAt"))
       .then((all) => setNotes(all.reverse()))
-      .catch(() => toast.error("Failed to load notes"));
+      .catch(() => toast.error("Failed to load notes"))
+      .finally(() => setIsLoading(false));
   }, []);
 
   async function createNote(): Promise<Note> {
@@ -79,5 +81,5 @@ export function useNotes() {
     }
   }
 
-  return { notes, createNote, updateNote, removeNote, togglePin };
+  return { notes, isLoading, createNote, updateNote, removeNote, togglePin };
 }

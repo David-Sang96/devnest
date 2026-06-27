@@ -17,17 +17,24 @@ export function useKanban() {
     columns: [],
     cards: [],
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const db = await getDB();
-      const [boards, columns, cards] = await Promise.all([
-        db.getAll("kanban_boards"),
-        db.getAll("kanban_columns"),
-        db.getAll("kanban_cards"),
-      ]);
-      boards.sort((a, b) => a.createdAt - b.createdAt);
-      setState({ boards, columns, cards });
+      try {
+        const db = await getDB();
+        const [boards, columns, cards] = await Promise.all([
+          db.getAll("kanban_boards"),
+          db.getAll("kanban_columns"),
+          db.getAll("kanban_cards"),
+        ]);
+        boards.sort((a, b) => a.createdAt - b.createdAt);
+        setState({ boards, columns, cards });
+      } catch {
+        toast.error("Failed to load data");
+      } finally {
+        setIsLoading(false);
+      }
     }
     load();
   }, []);
@@ -313,6 +320,7 @@ export function useKanban() {
 
   return {
     ...state,
+    isLoading,
     createBoard,
     updateBoard,
     removeBoard,

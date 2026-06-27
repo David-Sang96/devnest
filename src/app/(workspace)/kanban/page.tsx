@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Columns3 } from "lucide-react";
+import { Columns3, Loader2 } from "lucide-react";
 import { useKanban } from "@/hooks/use-kanban";
 import { useKanbanLabels } from "@/hooks/use-kanban-labels";
 import {
@@ -16,6 +16,24 @@ export default function KanbanPage() {
   const kanban = useKanban();
   const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("kanban-active-board");
+    if (saved) setActiveBoardId(saved);
+  }, []);
+
+  useEffect(() => {
+    if (activeBoardId) localStorage.setItem("kanban-active-board", activeBoardId);
+  }, [activeBoardId]);
+
+  useEffect(() => {
+    if (!selectedCardId) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setSelectedCardId(null);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [selectedCardId]);
 
   const activeBoard =
     kanban.boards.find((b) => b.id === activeBoardId) ?? kanban.boards[0] ?? null;
@@ -50,6 +68,14 @@ export default function KanbanPage() {
     }
     if (selectedCard?.boardId === id) setSelectedCardId(null);
     kanban.removeBoard(id);
+  }
+
+  if (kanban.isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   if (kanban.boards.length === 0) {
