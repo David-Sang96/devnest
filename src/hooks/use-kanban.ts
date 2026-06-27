@@ -318,6 +318,38 @@ export function useKanban() {
     []
   );
 
+  const moveBetweenBoards = useCallback(
+    async (cardId: string, targetBoardId: string, targetColumnId: string) => {
+      try {
+        const db = await getDB();
+        setState((prev) => {
+          const card = prev.cards.find((c) => c.id === cardId);
+          if (!card) return prev;
+          const now = Date.now();
+          const updatedCard = { ...card, boardId: targetBoardId, columnId: targetColumnId, updatedAt: now };
+          db.put("kanban_cards", updatedCard).catch(() => toast.error("Failed to save"));
+          const columns = prev.columns.map((c) => {
+            if (c.id === card.columnId) {
+              const col = { ...c, cardOrder: c.cardOrder.filter((id) => id !== cardId), updatedAt: now };
+              db.put("kanban_columns", col).catch(() => toast.error("Failed to save"));
+              return col;
+            }
+            if (c.id === targetColumnId) {
+              const col = { ...c, cardOrder: [...c.cardOrder, cardId], updatedAt: now };
+              db.put("kanban_columns", col).catch(() => toast.error("Failed to save"));
+              return col;
+            }
+            return c;
+          });
+          return { ...prev, cards: prev.cards.map((c) => c.id === cardId ? updatedCard : c), columns };
+        });
+      } catch {
+        toast.error("Failed to save");
+      }
+    },
+    []
+  );
+
   const restoreDeletedCard = useCallback(async (card: KanbanCard) => {
     try {
       const db = await getDB();
@@ -352,6 +384,7 @@ export function useKanban() {
     archiveCard,
     restoreCard,
     restoreDeletedCard,
+    moveBetweenBoards,
     moveCard,
     reorderCards,
     reorderColumns,

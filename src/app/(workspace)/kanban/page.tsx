@@ -204,6 +204,12 @@ export default function KanbanPage() {
               <CardDetailPanel
                 card={selectedCard}
                 labels={labels}
+                boards={kanban.boards}
+                allColumns={kanban.columns}
+                onMoveToBoard={(cardId, boardId, columnId) => {
+                  kanban.moveBetweenBoards(cardId, boardId, columnId);
+                  setSelectedCardId(null);
+                }}
                 onClose={() => setSelectedCardId(null)}
                 onUpdateCard={kanban.updateCard}
                 onArchive={(id) => {

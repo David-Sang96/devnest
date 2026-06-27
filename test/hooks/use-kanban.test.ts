@@ -614,6 +614,37 @@ describe("restoreDeletedCard()", () => {
   });
 });
 
+// ─── moveBetweenBoards ───────────────────────────────────────────────────────
+
+describe("moveBetweenBoards", () => {
+  it("moves card to target board and column, updates cardOrder on both columns", async () => {
+    const board1: KanbanBoard = { id: "b1", title: "B1", columnOrder: ["col1"], createdAt: 1, updatedAt: 1 };
+    const board2: KanbanBoard = { id: "b2", title: "B2", columnOrder: ["col2"], createdAt: 2, updatedAt: 2 };
+    const col1: KanbanColumn = { id: "col1", boardId: "b1", title: "C1", cardOrder: ["card1"], createdAt: 1, updatedAt: 1 };
+    const col2: KanbanColumn = { id: "col2", boardId: "b2", title: "C2", cardOrder: [], createdAt: 2, updatedAt: 2 };
+    const card1: KanbanCard = { id: "card1", columnId: "col1", boardId: "b1", title: "T", description: "", createdAt: 1, updatedAt: 1 };
+
+    seedAndConfigureMocks([board1, board2], [col1, col2], [card1]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.boards).toHaveLength(2));
+
+    await act(async () => {
+      await result.current.moveBetweenBoards("card1", "b2", "col2");
+    });
+
+    const movedCard = result.current.cards.find((c) => c.id === "card1");
+    expect(movedCard?.boardId).toBe("b2");
+    expect(movedCard?.columnId).toBe("col2");
+
+    const oldCol = result.current.columns.find((c) => c.id === "col1");
+    expect(oldCol?.cardOrder).not.toContain("card1");
+
+    const newCol = result.current.columns.find((c) => c.id === "col2");
+    expect(newCol?.cardOrder).toContain("card1");
+  });
+});
+
 describe("error handling", () => {
   it("shows toast.error when createBoard IDB write fails", async () => {
     const { toast } = await import("sonner");

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { X, Archive, Trash2 } from "lucide-react";
-import type { KanbanCard, KanbanLabel, Priority } from "@/types/kanban";
+import type { KanbanBoard, KanbanCard, KanbanColumn, KanbanLabel, Priority } from "@/types/kanban";
 import { LabelPicker } from "./label-picker";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,9 @@ const PRIORITY_CONFIG: Record<Priority, { label: string; color: string }> = {
 interface CardDetailPanelProps {
   card: KanbanCard;
   labels: KanbanLabel[];
+  boards?: KanbanBoard[];
+  allColumns?: KanbanColumn[];
+  onMoveToBoard?: (cardId: string, boardId: string, columnId: string) => void;
   onClose: () => void;
   onUpdateCard: (
     id: string,
@@ -34,6 +37,9 @@ interface CardDetailPanelProps {
 export function CardDetailPanel({
   card,
   labels,
+  boards = [],
+  allColumns = [],
+  onMoveToBoard,
   onClose,
   onUpdateCard,
   onArchive,
@@ -43,10 +49,16 @@ export function CardDetailPanel({
 }: CardDetailPanelProps) {
   const [title, setTitle] = useState(card.title);
   const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [showMovePanel, setShowMovePanel] = useState(false);
+  const [moveToBoardId, setMoveToBoardId] = useState("");
+  const [moveToColumnId, setMoveToColumnId] = useState("");
 
   useEffect(() => {
     setTitle(card.title);
     setShowLabelPicker(false);
+    setShowMovePanel(false);
+    setMoveToBoardId("");
+    setMoveToColumnId("");
   }, [card.id]);
 
   const editor = useEditor(
@@ -224,6 +236,66 @@ export function CardDetailPanel({
             )}
           </div>
         </div>
+
+        {/* Move to board */}
+        {onMoveToBoard && boards.length > 1 && (
+          <div className="mt-3 border-t border-border px-4 pb-3 pt-3">
+            {!showMovePanel ? (
+              <button
+                onClick={() => setShowMovePanel(true)}
+                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Move to board…
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Move to</p>
+                <select
+                  value={moveToBoardId}
+                  onChange={(e) => { setMoveToBoardId(e.target.value); setMoveToColumnId(""); }}
+                  className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="">Select board…</option>
+                  {boards.filter((b) => b.id !== card.boardId).map((b) => (
+                    <option key={b.id} value={b.id}>{b.title}</option>
+                  ))}
+                </select>
+                {moveToBoardId && (
+                  <select
+                    value={moveToColumnId}
+                    onChange={(e) => setMoveToColumnId(e.target.value)}
+                    className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="">Select column…</option>
+                    {allColumns.filter((c) => c.boardId === moveToBoardId).map((c) => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    disabled={!moveToBoardId || !moveToColumnId}
+                    onClick={() => {
+                      if (moveToBoardId && moveToColumnId) {
+                        onMoveToBoard(card.id, moveToBoardId, moveToColumnId);
+                        setShowMovePanel(false);
+                      }
+                    }}
+                    className="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-40"
+                  >
+                    Move
+                  </button>
+                  <button
+                    onClick={() => { setShowMovePanel(false); setMoveToBoardId(""); setMoveToColumnId(""); }}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
