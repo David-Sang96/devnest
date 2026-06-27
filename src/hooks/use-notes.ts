@@ -58,13 +58,15 @@ export function useNotes() {
     }
   }
 
-  async function removeNote(id: string) {
+  async function removeNote(id: string): Promise<boolean> {
     try {
       const db = await getDB();
       await db.delete("notes", id);
       setNotes((prev) => prev.filter((n) => n.id !== id));
+      return true;
     } catch {
       toast.error("Failed to save");
+      return false;
     }
   }
 

@@ -201,7 +201,7 @@ export function useKanban() {
     []
   );
 
-  const removeCard = useCallback(async (id: string, columnId: string) => {
+  const removeCard = useCallback(async (id: string, columnId: string): Promise<boolean> => {
     try {
       const db = await getDB();
       await db.delete("kanban_cards", id);
@@ -214,8 +214,10 @@ export function useKanban() {
         });
         return { ...prev, columns, cards: prev.cards.filter((c) => c.id !== id) };
       });
+      return true;
     } catch {
       toast.error("Failed to save");
+      return false;
     }
   }, []);
 

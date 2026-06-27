@@ -88,9 +88,9 @@ describe("<NoteList />", () => {
 
   // ── search input ──────────────────────────────────────────────────────────
 
-  it("renders the search input with placeholder 'Search notes...'", () => {
+  it("renders the search input with placeholder 'Search notes... (⌘K)'", () => {
     render(<NoteList {...defaultProps} />);
-    expect(screen.getByPlaceholderText("Search notes...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search notes... (⌘K)")).toBeInTheDocument();
   });
 
   it("search input shows the current searchQuery value", () => {
@@ -101,14 +101,14 @@ describe("<NoteList />", () => {
   it("calls onSearchChange when typing in the search input", async () => {
     const onSearchChange = vi.fn();
     render(<NoteList {...defaultProps} onSearchChange={onSearchChange} />);
-    await userEvent.type(screen.getByPlaceholderText("Search notes..."), "abc");
+    await userEvent.type(screen.getByPlaceholderText("Search notes... (⌘K)"), "abc");
     expect(onSearchChange).toHaveBeenCalledWith(expect.stringContaining("a"));
   });
 
   it("calls onSearchChange('') when Escape is pressed in the search input", async () => {
     const onSearchChange = vi.fn();
     render(<NoteList {...defaultProps} searchQuery="hello" onSearchChange={onSearchChange} />);
-    const input = screen.getByPlaceholderText("Search notes...");
+    const input = screen.getByPlaceholderText("Search notes... (⌘K)");
     await userEvent.click(input);
     await userEvent.keyboard("{Escape}");
     expect(onSearchChange).toHaveBeenCalledWith("");

@@ -5,12 +5,13 @@ import { ImportButton } from "@/components/settings/import-button";
 import type { BackupData } from "@/lib/backup";
 
 const VALID_BACKUP: BackupData = {
-  version: 1,
+  version: 2,
   exportedAt: 1_000_000,
   notes: [],
   kanban_boards: [],
   kanban_columns: [],
   kanban_cards: [],
+  kanban_labels: [],
 };
 
 vi.mock("@/lib/backup", () => ({

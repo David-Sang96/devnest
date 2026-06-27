@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { HardDrive, Clock } from "lucide-react";
+import { HardDrive, Clock, Database } from "lucide-react";
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 import { ExportButton } from "@/components/settings/export-button";
 import { ImportButton } from "@/components/settings/import-button";
 
@@ -14,6 +19,14 @@ const sectionVariants = {
 export default function SettingsPage() {
   const [lastExport, setLastExport] = useState<number | null>(null);
   const [importKey, setImportKey] = useState(0);
+  const [storage, setStorage] = useState<{ used: number; quota: number } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.storage?.estimate) return;
+    navigator.storage.estimate().then(({ usage, quota }) => {
+      if (usage != null && quota != null) setStorage({ used: usage, quota });
+    });
+  }, []);
 
   return (
     <div className="flex h-full items-start justify-center p-6 overflow-y-auto">
@@ -92,13 +105,30 @@ export default function SettingsPage() {
           initial="initial"
           animate="animate"
           transition={{ duration: 0.2, delay: 0.12 }}
-          className="rounded-lg border border-border bg-card p-5 space-y-2"
+          className="rounded-lg border border-border bg-card p-5 space-y-3"
         >
-          <h2 className="text-sm font-semibold text-foreground">Storage</h2>
+          <div className="flex items-center gap-2">
+            <Database className="size-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Storage</h2>
+          </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             DevNest stores everything in <span className="font-mono text-foreground">IndexedDB</span> — a browser-native database.
             No data is ever sent to a server. Clearing your browser&apos;s site data will erase all content.
           </p>
+          {storage && (
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{formatBytes(storage.used)} used</span>
+                <span>{formatBytes(storage.quota)} available</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${Math.min(100, (storage.used / storage.quota) * 100).toFixed(2)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </div>

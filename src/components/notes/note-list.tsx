@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Plus, StickyNote, Search, ArrowUpDown, Calendar, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,14 +25,17 @@ interface Props {
   onShowPinnedOnlyChange: (v: boolean) => void;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  searchRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function NoteList({
   notes, selectedId, onSelect, onNew, onDelete, onTogglePin,
   searchQuery, onSearchChange, sortOrder, onSortChange,
   dateFilter, onDateFilterChange, showPinnedOnly, onShowPinnedOnlyChange,
-  hasActiveFilters, onClearFilters,
+  hasActiveFilters, onClearFilters, searchRef,
 }: Props) {
+  const internalRef = useRef<HTMLInputElement>(null);
+  const inputRef = searchRef ?? internalRef;
   return (
     <div className="flex flex-col border-r border-border h-full w-full">
       {/* Title bar */}
@@ -47,8 +51,9 @@ export function NoteList({
         <div className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <input
+            ref={inputRef}
             type="text"
-            placeholder="Search notes..."
+            placeholder="Search notes... (⌘K)"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Escape") onSearchChange(""); }}

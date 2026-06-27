@@ -219,11 +219,11 @@ export default function KanbanPage() {
                   kanban.archiveCard(id);
                   setSelectedCardId(null);
                 }}
-                onDelete={(id, colId) => {
+                onDelete={async (id, colId) => {
                   const card = kanban.cards.find((c) => c.id === id);
-                  kanban.removeCard(id, colId);
+                  const deleted = await kanban.removeCard(id, colId);
                   setSelectedCardId(null);
-                  if (card) {
+                  if (card && deleted) {
                     toast("Card deleted", {
                       duration: 5000,
                       action: {

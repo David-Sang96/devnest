@@ -214,6 +214,7 @@ describe("importData()", () => {
       name: "Bug",
       color: "#ff0000",
       createdAt: 1,
+      updatedAt: 1,
     };
     const backup: BackupData = { ...EMPTY_BACKUP, kanban_labels: [label] };
     await importData(backup);

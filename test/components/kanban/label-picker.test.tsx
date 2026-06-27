@@ -11,6 +11,7 @@ function makeLabel(overrides: Partial<KanbanLabel> = {}): KanbanLabel {
     name: "backend",
     color: "#ef4444",
     createdAt: 1,
+    updatedAt: 1,
     ...overrides,
   };
 }

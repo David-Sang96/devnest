@@ -57,15 +57,17 @@ export default function NotesPage() {
   async function handleDelete(id: string) {
     const note = notes.find((n) => n.id === id);
     if (!note) return;
-    await removeNote(id);
+    const deleted = await removeNote(id);
     if (selectedId === id) setSelectedId(null);
-    toast("Note deleted", {
-      duration: 5000,
-      action: {
-        label: "Undo",
-        onClick: () => restoreNote(note),
-      },
-    });
+    if (deleted) {
+      toast("Note deleted", {
+        duration: 5000,
+        action: {
+          label: "Undo",
+          onClick: () => restoreNote(note),
+        },
+      });
+    }
   }
 
   return (
