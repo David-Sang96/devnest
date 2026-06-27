@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 @AGENTS.md
 
 ## Commands
@@ -10,31 +8,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # start dev server (localhost:3000)
 npm run build    # production build
 npm run lint     # run ESLint
-npx vitest       # run tests (vitest is configured, @testing-library/react available)
+npx vitest       # run tests (vitest + @testing-library/react)
 ```
 
 ## Architecture
 
-**Next.js 16 App Router** — pages live under `src/app/`, using the standard `layout.tsx` / `page.tsx` conventions. This is Next.js 16, which has breaking changes from earlier versions; check `node_modules/next/dist/docs/` if behavior is unclear.
+**Next.js 16 App Router** — pages under `src/app/`. Breaking changes from earlier versions; check `node_modules/next/dist/docs/` if behavior unclear.
 
-**Route groups** — all workspace tools live under `src/app/(workspace)/` and share the `WorkspaceShell` layout (sidebar + page transition). The root `page.tsx` redirects to `/notes`. Adding a new tool means: create `src/app/(workspace)/<tool>/page.tsx`, add the nav entry to `src/components/layout/sidebar.tsx`, and wire up a hook + components.
+**Route groups** — workspace tools under `src/app/(workspace)/`, share `WorkspaceShell` layout (sidebar + page transition). Root `page.tsx` redirects to `/notes`. New tool: create `src/app/(workspace)/<tool>/page.tsx`, add nav entry to `src/components/layout/sidebar.tsx`, wire hook + components.
 
-**Data layer** — all persistence goes through IndexedDB via a singleton `getDB()` from `src/lib/db.ts` (uses the `idb` library). The DB name is `developer-workspace`, schema version 1. Stores: `notes`, `kanban_boards`, `kanban_columns`, `kanban_cards`. Each feature has a custom hook (`src/hooks/`) that owns both the React state and the IDB writes — optimistic updates are applied to state immediately, then persisted. Everything that calls `getDB()` must be in a `"use client"` file.
+**Data layer** — all persistence via IndexedDB, singleton `getDB()` from `src/lib/db.ts` (`idb` library). DB: `developer-workspace`, schema version 2. Stores: `notes`, `kanban_boards`, `kanban_columns`, `kanban_cards`, `kanban_labels`. Each feature owns a hook in `src/hooks/` — optimistic state update then IDB persist. All `getDB()` callers must be `"use client"`.
 
-**Backup** — `src/lib/backup.ts` exports `exportAllData / downloadBackup / parseBackup / importData`. The backup format is versioned (`version: 1`) and includes all four stores as flat arrays. Any new store added to the DB schema must also be included in the backup format.
+**Backup** — `src/lib/backup.ts` exports `exportAllData / downloadBackup / parseBackup / importData`. Format: `version: 2`, flat arrays of all five stores. Any new store must be added to backup format.
 
-**UI components** — shadcn/ui is configured, but components use **`@base-ui/react`** as their headless primitive layer (not Radix UI). New shadcn components added via `npx shadcn@latest add <component>` will follow this pattern. Components land in `src/components/ui/`.
+**UI components** — shadcn/ui with **`@base-ui/react`** as headless primitive (not Radix UI). `npx shadcn@latest add <component>`. Components land in `src/components/ui/`.
 
-**Styling** — Tailwind v4 (CSS-first, no `tailwind.config.js`). All theme tokens (colors, radius, fonts) are defined as CSS variables in `src/app/globals.css` using the `oklch` color space. Dark mode is toggled via the `.dark` class. `tw-animate-css` is available for pre-built animation utilities.
+**Styling** — Tailwind v4 (CSS-first, no `tailwind.config.js`). Theme tokens in `src/app/globals.css` as CSS variables (`oklch`). Dark mode via `.dark` class. `tw-animate-css` for animation utilities.
 
-**Animations** — `motion` v12 is installed. Import as:
+**Animations** — `motion` v12. Import: `import { motion } from "motion/react"`
 
-```ts
-import { motion } from "motion/react"
-```
+**Drag-and-drop** — `@dnd-kit/core` + `@dnd-kit/sortable` in Kanban. Follow patterns in `src/components/kanban/`.
 
-**Drag-and-drop** — `@dnd-kit/core` + `@dnd-kit/sortable` are used in the Kanban board. Follow the same pattern in `src/components/kanban/` for any new DnD feature.
+**Icons** — `lucide-react` (v1.20).
 
-**Icons** — `lucide-react` (v1.20) is the icon library.
-
-**Utilities** — `cn()` from `@/lib/utils` combines `clsx` and `tailwind-merge` for conditional class names.
+**Utilities** — `cn()` from `@/lib/utils` (`clsx` + `tailwind-merge`).
