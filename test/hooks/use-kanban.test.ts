@@ -583,6 +583,37 @@ describe("restoreCard()", () => {
   });
 });
 
+// ─── restoreDeletedCard ──────────────────────────────────────────────────
+
+describe("restoreDeletedCard()", () => {
+  it("restores a deleted card back to the cards list and column", async () => {
+    const board = makeBoard({ id: "b1" });
+    const col = makeColumn({ id: "c1", boardId: "b1", cardOrder: ["k1"] });
+    const card = makeCard({ id: "k1", columnId: "c1", boardId: "b1" });
+    seedAndConfigureMocks([board], [col], [card]);
+
+    const { result } = renderHook(() => useKanban());
+    await waitFor(() => expect(result.current.cards).toHaveLength(1));
+
+    // Remove the card first
+    await act(async () => {
+      await result.current.removeCard("k1", "c1");
+    });
+    expect(result.current.cards).toHaveLength(0);
+    expect(result.current.columns[0].cardOrder).not.toContain("k1");
+
+    // Restore the card
+    await act(async () => {
+      await result.current.restoreDeletedCard(card);
+    });
+
+    expect(result.current.cards).toHaveLength(1);
+    expect(result.current.cards[0].id).toBe("k1");
+    expect(result.current.columns[0].cardOrder).toContain("k1");
+    expect(mockDB.put).toHaveBeenCalledWith("kanban_cards", card);
+  });
+});
+
 describe("error handling", () => {
   it("shows toast.error when createBoard IDB write fails", async () => {
     const { toast } = await import("sonner");

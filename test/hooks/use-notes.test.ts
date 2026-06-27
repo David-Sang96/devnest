@@ -318,6 +318,31 @@ describe("useNotes()", () => {
     expect(result.current.notes).toHaveLength(0);
   });
 
+  // ── restoreNote ────────────────────────────────────────────────────────
+
+  it("restoreNote() restores a note back to the notes list", async () => {
+    const note = makeNote({ id: "n1", updatedAt: 100 });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+
+    // Remove the note first
+    await act(async () => {
+      await result.current.removeNote("n1");
+    });
+    expect(result.current.notes).toHaveLength(0);
+
+    // Restore the note
+    await act(async () => {
+      await result.current.restoreNote(note);
+    });
+
+    expect(result.current.notes).toHaveLength(1);
+    expect(result.current.notes[0].id).toBe("n1");
+    expect(mockDB.put).toHaveBeenCalledWith("notes", note);
+  });
+
   describe("error handling", () => {
     it("shows toast.error when createNote IDB write fails", async () => {
       const { toast } = await import("sonner");
@@ -339,6 +364,17 @@ describe("useNotes()", () => {
       await waitFor(() => expect(result.current.notes).toHaveLength(1));
       await act(async () => { await result.current.removeNote("n1"); });
       expect(toast.error).toHaveBeenCalledWith("Failed to save");
+    });
+
+    it("shows toast.error when restoreNote IDB write fails", async () => {
+      const note = makeNote({ id: "n1" });
+      const { toast } = await import("sonner");
+      vi.spyOn(toast, "error");
+      mockDB.put.mockRejectedValueOnce(new Error("IDB failure"));
+      const { result } = renderHook(() => useNotes());
+      await waitFor(() => expect(mockDB.getAllFromIndex).toHaveBeenCalled());
+      await act(async () => { await result.current.restoreNote(note); });
+      expect(toast.error).toHaveBeenCalledWith("Failed to restore note");
     });
   });
 });
