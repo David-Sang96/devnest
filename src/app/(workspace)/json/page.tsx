@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AlignLeft, Minimize2, Copy, Trash2, Check } from "lucide-react";
 import { tryParse, formatJson, minifyJson } from "@/lib/json-format";
@@ -8,6 +8,8 @@ import { JsonInput } from "@/components/json/json-input";
 import { JsonOutput } from "@/components/json/json-output";
 import { JsonErrorBanner } from "@/components/json/json-error-banner";
 import { cn } from "@/lib/utils";
+
+const LS_KEY = "devnest-json-input";
 
 const buttonVariants = {
   initial: { opacity: 0, y: 4 },
@@ -18,6 +20,17 @@ export default function JsonPage() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Restore persisted input on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) setInput(saved);
+  }, []);
+
+  // Persist input on change
+  useEffect(() => {
+    localStorage.setItem(LS_KEY, input);
+  }, [input]);
 
   const parseResult = useMemo(() => {
     if (!input.trim()) return null;
