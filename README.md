@@ -2,6 +2,14 @@
 
 An offline-first personal developer workspace built with Next.js and Claude Code. Combines a WYSIWYG notes editor, Kanban board, password manager, and JSON explorer — all running entirely in your browser with no accounts or cloud required.
 
+## Screenshots
+
+![Notes](screenshots/01-notes.png)
+![Kanban](screenshots/02-kanban.png)
+![JSON Formatter](screenshots/03-json.png)
+![Settings](screenshots/04-settings.png)
+![Password Generator](screenshots/05-password.png)
+
 ## Features
 
 ### Notes
