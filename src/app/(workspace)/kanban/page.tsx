@@ -11,6 +11,7 @@ import {
   CreateBoardButton,
 } from "@/components/kanban/kanban-board";
 import { CardDetailPanel } from "@/components/kanban/card-detail-panel";
+import { toast } from "sonner";
 
 export default function KanbanPage() {
   const kanban = useKanban();
@@ -62,6 +63,7 @@ export default function KanbanPage() {
   }
 
   function handleDeleteBoard(id: string) {
+    if (!window.confirm("Delete this board and all its cards? This cannot be undone.")) return;
     const remaining = kanban.boards.filter((b) => b.id !== id);
     if (activeBoardId === id || activeBoardId === null) {
       setActiveBoardId(remaining[0]?.id ?? null);
@@ -209,8 +211,18 @@ export default function KanbanPage() {
                   setSelectedCardId(null);
                 }}
                 onDelete={(id, colId) => {
+                  const card = kanban.cards.find((c) => c.id === id);
                   kanban.removeCard(id, colId);
                   setSelectedCardId(null);
+                  if (card) {
+                    toast("Card deleted", {
+                      duration: 5000,
+                      action: {
+                        label: "Undo",
+                        onClick: () => kanban.restoreDeletedCard(card),
+                      },
+                    });
+                  }
                 }}
                 onCreateLabel={createLabel}
                 onRemoveLabel={handleRemoveLabel}

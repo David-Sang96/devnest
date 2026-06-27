@@ -318,6 +318,25 @@ export function useKanban() {
     []
   );
 
+  const restoreDeletedCard = useCallback(async (card: KanbanCard) => {
+    try {
+      const db = await getDB();
+      await db.put("kanban_cards", card);
+      setState((prev) => {
+        const columns = prev.columns.map((c) => {
+          if (c.id !== card.columnId) return c;
+          if (c.cardOrder.includes(card.id)) return c;
+          const updated = { ...c, cardOrder: [...c.cardOrder, card.id], updatedAt: Date.now() };
+          db.put("kanban_columns", updated).catch(() => toast.error("Failed to save"));
+          return updated;
+        });
+        return { ...prev, columns, cards: [...prev.cards, card] };
+      });
+    } catch {
+      toast.error("Failed to restore card");
+    }
+  }, []);
+
   return {
     ...state,
     isLoading,
@@ -332,6 +351,7 @@ export function useKanban() {
     removeCard,
     archiveCard,
     restoreCard,
+    restoreDeletedCard,
     moveCard,
     reorderCards,
     reorderColumns,

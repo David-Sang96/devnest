@@ -68,6 +68,16 @@ export function useNotes() {
     }
   }
 
+  async function restoreNote(note: Note) {
+    try {
+      const db = await getDB();
+      await db.put("notes", note);
+      setNotes((prev) => [note, ...prev].sort((a, b) => b.updatedAt - a.updatedAt));
+    } catch {
+      toast.error("Failed to restore note");
+    }
+  }
+
   async function togglePin(id: string) {
     try {
       const db = await getDB();
@@ -81,5 +91,5 @@ export function useNotes() {
     }
   }
 
-  return { notes, isLoading, createNote, updateNote, removeNote, togglePin };
+  return { notes, isLoading, createNote, updateNote, removeNote, restoreNote, togglePin };
 }

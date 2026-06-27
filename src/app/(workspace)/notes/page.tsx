@@ -9,9 +9,10 @@ import { NoteList } from "@/components/notes/note-list";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { NoteEmptyState } from "@/components/notes/note-empty-state";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function NotesPage() {
-  const { notes, isLoading, createNote, updateNote, removeNote, togglePin } = useNotes();
+  const { notes, isLoading, createNote, updateNote, removeNote, restoreNote, togglePin } = useNotes();
   const {
     filteredNotes,
     searchQuery, setSearchQuery,
@@ -54,8 +55,17 @@ export default function NotesPage() {
   }, [handleNew]);
 
   async function handleDelete(id: string) {
+    const note = notes.find((n) => n.id === id);
+    if (!note) return;
     await removeNote(id);
     if (selectedId === id) setSelectedId(null);
+    toast("Note deleted", {
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => restoreNote(note),
+      },
+    });
   }
 
   return (
