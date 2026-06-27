@@ -26,6 +26,7 @@ export function NoteEditor({ note, onUpdate, onBack }: Props) {
     note.title === "Untitled" && !note.content ? "" : note.title
   );
   const [showSaved, setShowSaved] = useState(false);
+  const [wordCount, setWordCount] = useState({ words: 0, chars: 0 });
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -34,6 +35,13 @@ export function NoteEditor({ note, onUpdate, onBack }: Props) {
     setShowSaved(true);
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setShowSaved(false), 2000);
+  }
+
+  function computeCount(text: string) {
+    return {
+      words: text.trim() ? text.trim().split(/\s+/).length : 0,
+      chars: text.length,
+    };
   }
 
   const editor = useEditor({
@@ -48,7 +56,11 @@ export function NoteEditor({ note, onUpdate, onBack }: Props) {
         class: "prose-editor focus:outline-none min-h-64 px-4 md:px-6 py-5",
       },
     },
+    onCreate({ editor }) {
+      setWordCount(computeCount(editor.getText()));
+    },
     onUpdate({ editor }) {
+      setWordCount(computeCount(editor.getText()));
       setShowSaved(false);
       if (contentDebounceRef.current) clearTimeout(contentDebounceRef.current);
       contentDebounceRef.current = setTimeout(async () => {
@@ -127,6 +139,13 @@ export function NoteEditor({ note, onUpdate, onBack }: Props) {
       <div className="flex-1 overflow-y-auto">
         <NoteBubbleMenu editor={editor} />
         <EditorContent editor={editor} />
+      </div>
+
+      {/* Word count footer */}
+      <div className="shrink-0 border-t border-border px-4 md:px-6 py-1.5">
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {wordCount.words} words · {wordCount.chars} chars
+        </span>
       </div>
     </motion.div>
   );

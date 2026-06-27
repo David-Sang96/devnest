@@ -128,4 +128,11 @@ describe("<NoteEditor />", () => {
       expect(onBack).toHaveBeenCalledOnce();
     });
   });
+
+  // ── Word/char count footer ────────────────────────────────────
+
+  it("renders word and char count footer with 0 words · 0 chars for empty note", () => {
+    render(<NoteEditor note={makeNote({ content: "" })} onUpdate={vi.fn()} />);
+    expect(screen.getByText(/0 words · 0 chars/)).toBeInTheDocument();
+  });
 });
