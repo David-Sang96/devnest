@@ -6,31 +6,47 @@ import { getDB } from "@/lib/db";
 import type { Note } from "@/types";
 import { extractTitle } from "@/lib/note-content";
 
+const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
 export function useNotes() {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [allNotes, setAllNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getDB()
-      .then((db) => db.getAllFromIndex("notes", "updatedAt"))
-      .then((all) => setNotes(all.reverse()))
-      .catch(() => toast.error("Failed to load notes"))
-      .finally(() => setIsLoading(false));
+    async function load() {
+      try {
+        const db = await getDB();
+        const all = await db.getAllFromIndex("notes", "updatedAt");
+        const now = Date.now();
+        const expired = all.filter((n) => n.deletedAt && n.deletedAt < now - THIRTY_DAYS);
+        await Promise.all(expired.map((n) => db.delete("notes", n.id)));
+        const remaining = all.filter((n) => !n.deletedAt || n.deletedAt >= now - THIRTY_DAYS);
+        setAllNotes(remaining.reverse());
+      } catch {
+        toast.error("Failed to load notes");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  async function createNote(): Promise<Note> {
+  const notes = allNotes.filter((n) => !n.deletedAt);
+  const trashedNotes = allNotes.filter((n) => !!n.deletedAt);
+
+  async function createNote(initial?: { title: string; content: string }): Promise<Note> {
     const now = Date.now();
     const note: Note = {
       id: crypto.randomUUID(),
-      title: "Untitled",
-      content: "",
+      title: initial?.title ?? "Untitled",
+      content: initial?.content ?? "",
       createdAt: now,
       updatedAt: now,
     };
     try {
       const db = await getDB();
       await db.put("notes", note);
-      setNotes((prev) => [note, ...prev]);
+      setAllNotes((prev) => [note, ...prev]);
     } catch {
       toast.error("Failed to save");
     }
@@ -50,7 +66,7 @@ export function useNotes() {
       }
       const updated: Note = { ...existing, ...changes, title: derivedTitle, updatedAt: Date.now() };
       await db.put("notes", updated);
-      setNotes((prev) =>
+      setAllNotes((prev) =>
         prev.map((n) => (n.id === id ? updated : n)).sort((a, b) => b.updatedAt - a.updatedAt)
       );
     } catch {
@@ -58,25 +74,51 @@ export function useNotes() {
     }
   }
 
-  async function removeNote(id: string): Promise<boolean> {
+  async function removeNote(id: string): Promise<void> {
     try {
       const db = await getDB();
-      await db.delete("notes", id);
-      setNotes((prev) => prev.filter((n) => n.id !== id));
-      return true;
+      const existing = await db.get("notes", id);
+      if (!existing) return;
+      const trashed: Note = { ...existing, deletedAt: Date.now() };
+      await db.put("notes", trashed);
+      setAllNotes((prev) => prev.map((n) => (n.id === id ? trashed : n)));
     } catch {
-      toast.error("Failed to save");
-      return false;
+      toast.error("Failed to delete note");
     }
   }
 
-  async function restoreNote(note: Note) {
+  async function restoreFromTrash(id: string): Promise<void> {
     try {
       const db = await getDB();
-      await db.put("notes", note);
-      setNotes((prev) => [note, ...prev].sort((a, b) => b.updatedAt - a.updatedAt));
+      const existing = await db.get("notes", id);
+      if (!existing) return;
+      const { deletedAt: _removed, ...rest } = existing;
+      const restored: Note = { ...rest, updatedAt: Date.now() };
+      await db.put("notes", restored);
+      setAllNotes((prev) => prev.map((n) => (n.id === id ? restored : n)));
     } catch {
       toast.error("Failed to restore note");
+    }
+  }
+
+  async function permanentlyDelete(id: string): Promise<void> {
+    try {
+      const db = await getDB();
+      await db.delete("notes", id);
+      setAllNotes((prev) => prev.filter((n) => n.id !== id));
+    } catch {
+      toast.error("Failed to delete note");
+    }
+  }
+
+  async function emptyTrash(): Promise<void> {
+    try {
+      const db = await getDB();
+      const toDelete = allNotes.filter((n) => !!n.deletedAt);
+      await Promise.all(toDelete.map((n) => db.delete("notes", n.id)));
+      setAllNotes((prev) => prev.filter((n) => !n.deletedAt));
+    } catch {
+      toast.error("Failed to empty trash");
     }
   }
 
@@ -87,11 +129,22 @@ export function useNotes() {
       if (!existing) return;
       const updated: Note = { ...existing, pinned: !existing.pinned };
       await db.put("notes", updated);
-      setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+      setAllNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
     } catch {
       toast.error("Failed to save");
     }
   }
 
-  return { notes, isLoading, createNote, updateNote, removeNote, restoreNote, togglePin };
+  return {
+    notes,
+    trashedNotes,
+    isLoading,
+    createNote,
+    updateNote,
+    removeNote,
+    restoreFromTrash,
+    permanentlyDelete,
+    emptyTrash,
+    togglePin,
+  };
 }

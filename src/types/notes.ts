@@ -5,6 +5,7 @@ export interface Note {
   createdAt: number;
   updatedAt: number;
   pinned?: boolean;
+  deletedAt?: number;
 }
 
 export type SortOrder = "updatedAt" | "createdAt" | "title";

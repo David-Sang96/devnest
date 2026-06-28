@@ -214,9 +214,9 @@ describe("useNotes()", () => {
     expect(result.current.notes).toHaveLength(0);
   });
 
-  // ── removeNote ─────────────────────────────────────────────────────────────
+  // ── removeNote (soft-delete) ───────────────────────────────────────────────
 
-  it("removeNote() removes the note from state", async () => {
+  it("removeNote() moves the note to trashedNotes, not notes", async () => {
     const note = makeNote({ id: "n1" });
     seedStore([note]);
 
@@ -228,9 +228,11 @@ describe("useNotes()", () => {
     });
 
     expect(result.current.notes).toHaveLength(0);
+    expect(result.current.trashedNotes).toHaveLength(1);
+    expect(result.current.trashedNotes[0].id).toBe("n1");
   });
 
-  it("removeNote() deletes from the mock DB", async () => {
+  it("removeNote() sets deletedAt on the note in IDB via put (not delete)", async () => {
     const note = makeNote({ id: "n1" });
     seedStore([note]);
 
@@ -241,10 +243,14 @@ describe("useNotes()", () => {
       await result.current.removeNote("n1");
     });
 
-    expect(mockDB.delete).toHaveBeenCalledWith("notes", "n1");
+    expect(mockDB.delete).not.toHaveBeenCalled();
+    expect(mockDB.put).toHaveBeenCalledWith(
+      "notes",
+      expect.objectContaining({ id: "n1", deletedAt: expect.any(Number) })
+    );
   });
 
-  it("removeNote() only removes the targeted note", async () => {
+  it("removeNote() only soft-deletes the targeted note", async () => {
     const n1 = makeNote({ id: "n1", updatedAt: 1 });
     const n2 = makeNote({ id: "n2", updatedAt: 2 });
     seedStore([n1, n2]);
@@ -258,6 +264,7 @@ describe("useNotes()", () => {
 
     expect(result.current.notes).toHaveLength(1);
     expect(result.current.notes[0].id).toBe("n2");
+    expect(result.current.trashedNotes).toHaveLength(1);
   });
 
   // ── togglePin ──────────────────────────────────────────────────────────────
@@ -318,29 +325,97 @@ describe("useNotes()", () => {
     expect(result.current.notes).toHaveLength(0);
   });
 
-  // ── restoreNote ────────────────────────────────────────────────────────
+  // ── restoreFromTrash ───────────────────────────────────────────────────────
 
-  it("restoreNote() restores a note back to the notes list", async () => {
-    const note = makeNote({ id: "n1", updatedAt: 100 });
+  it("restoreFromTrash() moves the note back to active notes", async () => {
+    const note = makeNote({ id: "n1", deletedAt: Date.now() - 1000 });
     seedStore([note]);
 
     const { result } = renderHook(() => useNotes());
-    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    // Remove the note first
-    await act(async () => {
-      await result.current.removeNote("n1");
-    });
-    expect(result.current.notes).toHaveLength(0);
+    expect(result.current.trashedNotes).toHaveLength(1);
 
-    // Restore the note
     await act(async () => {
-      await result.current.restoreNote(note);
+      await result.current.restoreFromTrash("n1");
     });
 
     expect(result.current.notes).toHaveLength(1);
-    expect(result.current.notes[0].id).toBe("n1");
-    expect(mockDB.put).toHaveBeenCalledWith("notes", note);
+    expect(result.current.trashedNotes).toHaveLength(0);
+    expect(result.current.notes[0].deletedAt).toBeUndefined();
+  });
+
+  it("restoreFromTrash() clears deletedAt in IDB", async () => {
+    const note = makeNote({ id: "n1", deletedAt: Date.now() - 1000 });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.restoreFromTrash("n1");
+    });
+
+    expect(mockDB.put).toHaveBeenCalledWith(
+      "notes",
+      expect.not.objectContaining({ deletedAt: expect.any(Number) })
+    );
+  });
+
+  // ── permanentlyDelete ──────────────────────────────────────────────────────
+
+  it("permanentlyDelete() removes the note from trashedNotes and from IDB", async () => {
+    const note = makeNote({ id: "n1", deletedAt: Date.now() - 1000 });
+    seedStore([note]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.permanentlyDelete("n1");
+    });
+
+    expect(result.current.trashedNotes).toHaveLength(0);
+    expect(mockDB.delete).toHaveBeenCalledWith("notes", "n1");
+  });
+
+  // ── emptyTrash ─────────────────────────────────────────────────────────────
+
+  it("emptyTrash() permanently deletes all trashed notes", async () => {
+    const n1 = makeNote({ id: "n1", deletedAt: Date.now() - 100 });
+    const n2 = makeNote({ id: "n2", deletedAt: Date.now() - 200 });
+    const active = makeNote({ id: "n3" });
+    seedStore([n1, n2, active]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.emptyTrash();
+    });
+
+    expect(result.current.trashedNotes).toHaveLength(0);
+    expect(result.current.notes).toHaveLength(1);
+    expect(mockDB.delete).toHaveBeenCalledWith("notes", "n1");
+    expect(mockDB.delete).toHaveBeenCalledWith("notes", "n2");
+    expect(mockDB.delete).not.toHaveBeenCalledWith("notes", "n3");
+  });
+
+  // ── auto-purge on load ─────────────────────────────────────────────────────
+
+  it("auto-purges notes deleted more than 30 days ago on load", async () => {
+    const THIRTY_ONE_DAYS = 31 * 24 * 60 * 60 * 1000;
+    const old = makeNote({ id: "old", deletedAt: Date.now() - THIRTY_ONE_DAYS });
+    const recent = makeNote({ id: "recent", deletedAt: Date.now() - 1000 });
+    seedStore([old, recent]);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockDB.delete).toHaveBeenCalledWith("notes", "old");
+    expect(mockDB.delete).not.toHaveBeenCalledWith("notes", "recent");
+    expect(result.current.trashedNotes).toHaveLength(1);
+    expect(result.current.trashedNotes[0].id).toBe("recent");
   });
 
   describe("error handling", () => {
@@ -354,26 +429,30 @@ describe("useNotes()", () => {
       expect(toast.error).toHaveBeenCalledWith("Failed to save");
     });
 
-    it("shows toast.error when removeNote IDB delete fails", async () => {
+    it("shows toast.error when removeNote IDB put fails", async () => {
       const note = makeNote({ id: "n1" });
       seedStore([note]);
       const { toast } = await import("sonner");
       vi.spyOn(toast, "error");
-      mockDB.delete.mockRejectedValueOnce(new Error("IDB failure"));
+      // get fails after put fails — put is called with deletedAt
+      mockDB.get.mockResolvedValueOnce(note);
+      mockDB.put.mockRejectedValueOnce(new Error("IDB failure"));
       const { result } = renderHook(() => useNotes());
       await waitFor(() => expect(result.current.notes).toHaveLength(1));
       await act(async () => { await result.current.removeNote("n1"); });
-      expect(toast.error).toHaveBeenCalledWith("Failed to save");
+      expect(toast.error).toHaveBeenCalledWith("Failed to delete note");
     });
 
-    it("shows toast.error when restoreNote IDB write fails", async () => {
-      const note = makeNote({ id: "n1" });
+    it("shows toast.error when restoreFromTrash IDB put fails", async () => {
+      const note = makeNote({ id: "n1", deletedAt: Date.now() - 1000 });
+      seedStore([note]);
       const { toast } = await import("sonner");
       vi.spyOn(toast, "error");
+      mockDB.get.mockResolvedValueOnce(note);
       mockDB.put.mockRejectedValueOnce(new Error("IDB failure"));
       const { result } = renderHook(() => useNotes());
-      await waitFor(() => expect(mockDB.getAllFromIndex).toHaveBeenCalled());
-      await act(async () => { await result.current.restoreNote(note); });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      await act(async () => { await result.current.restoreFromTrash("n1"); });
       expect(toast.error).toHaveBeenCalledWith("Failed to restore note");
     });
   });
