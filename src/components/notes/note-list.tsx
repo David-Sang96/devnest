@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, StickyNote, Search, ArrowUpDown, Calendar, Pin, Trash2, RotateCcw, X } from "lucide-react";
+import { Plus, ChevronDown, StickyNote, Search, ArrowUpDown, Calendar, Pin, Trash2, RotateCcw, X } from "lucide-react";
+import { NOTE_TEMPLATES } from "@/lib/note-templates";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NoteListItem } from "./note-list-item";
@@ -19,6 +20,7 @@ interface Props {
   onRestoreFromTrash: (id: string) => void;
   onPermanentlyDelete: (id: string) => void;
   onEmptyTrash: () => void;
+  onNewFromTemplate: (initial: { title: string; content: string }) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   sortOrder: SortOrder;
@@ -34,7 +36,7 @@ interface Props {
 
 export function NoteList({
   notes, trashedNotes, selectedId, onSelect, onNew, onDelete, onTogglePin,
-  onRestoreFromTrash, onPermanentlyDelete, onEmptyTrash,
+  onRestoreFromTrash, onPermanentlyDelete, onEmptyTrash, onNewFromTemplate,
   searchQuery, onSearchChange, sortOrder, onSortChange,
   dateFilter, onDateFilterChange, showPinnedOnly, onShowPinnedOnlyChange,
   hasActiveFilters, onClearFilters, searchRef,
@@ -42,6 +44,19 @@ export function NoteList({
   const internalRef = useRef<HTMLInputElement>(null);
   const inputRef = searchRef ?? internalRef;
   const [inTrash, setInTrash] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const templateMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showTemplates) return;
+    function handleClick(e: MouseEvent) {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setShowTemplates(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showTemplates]);
 
   return (
     <div className="flex flex-col border-r border-border h-full w-full">
@@ -52,9 +67,49 @@ export function NoteList({
         </span>
         <div className="flex items-center gap-1">
           {!inTrash && (
-            <Button size="icon-xs" variant="ghost" onClick={onNew} aria-label="New note">
-              <Plus className="size-3.5" />
-            </Button>
+            <div className="relative flex items-center">
+              {/* Main new note button */}
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                onClick={onNew}
+                aria-label="New note"
+                className="rounded-r-none border-r border-border/50"
+              >
+                <Plus className="size-3.5" />
+              </Button>
+              {/* Template chevron */}
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                onClick={() => setShowTemplates((v) => !v)}
+                aria-label="New note from template"
+                aria-expanded={showTemplates}
+                className="rounded-l-none px-1"
+              >
+                <ChevronDown className="size-3" />
+              </Button>
+              {/* Template dropdown */}
+              {showTemplates && (
+                <div
+                  ref={templateMenuRef}
+                  className="absolute right-0 top-8 z-20 w-40 rounded-md border border-border bg-popover shadow-md py-1"
+                >
+                  {NOTE_TEMPLATES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        onNewFromTemplate({ title: t.title, content: t.content });
+                        setShowTemplates(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           <button
             onClick={() => setInTrash((v) => !v)}

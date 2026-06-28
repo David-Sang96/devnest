@@ -63,8 +63,8 @@ describe("<NoteList />", () => {
 
   it("calls onNew when the + button is clicked", async () => {
     const onNew = vi.fn();
-    render(<NoteList {...defaultProps} onNew={onNew} />);
-    await userEvent.click(screen.getByRole("button", { name: /new note/i }));
+    render(<NoteList {...defaultProps} onNew={onNew} onNewFromTemplate={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: /^new note$/i }));
     expect(onNew).toHaveBeenCalledOnce();
   });
 
@@ -201,6 +201,46 @@ describe("<NoteList />", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: /clear filters/i }));
     expect(onClearFilters).toHaveBeenCalledOnce();
+  });
+
+  // ── template split button ──────────────────────────────────────────────────
+
+  it("renders a 'New note from template' button alongside the new note button", () => {
+    render(<NoteList {...defaultProps} onNewFromTemplate={() => {}} />);
+    expect(screen.getByRole("button", { name: /new note from template/i })).toBeInTheDocument();
+  });
+
+  it("clicking the template chevron opens the template dropdown", async () => {
+    render(<NoteList {...defaultProps} onNewFromTemplate={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: /new note from template/i }));
+    expect(screen.getByText("Meeting Notes")).toBeInTheDocument();
+    expect(screen.getByText("Daily Journal")).toBeInTheDocument();
+    expect(screen.getByText("Todo List")).toBeInTheDocument();
+    expect(screen.getByText("Project Brief")).toBeInTheDocument();
+  });
+
+  it("calls onNewFromTemplate with title and content when a template is selected", async () => {
+    const onNewFromTemplate = vi.fn();
+    render(<NoteList {...defaultProps} onNewFromTemplate={onNewFromTemplate} />);
+    await userEvent.click(screen.getByRole("button", { name: /new note from template/i }));
+    await userEvent.click(screen.getByText("Meeting Notes"));
+    expect(onNewFromTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Meeting Notes", content: expect.any(String) })
+    );
+  });
+
+  it("closes the template dropdown after selecting a template", async () => {
+    render(<NoteList {...defaultProps} onNewFromTemplate={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: /new note from template/i }));
+    await userEvent.click(screen.getByText("Meeting Notes"));
+    expect(screen.queryByText("Daily Journal")).not.toBeInTheDocument();
+  });
+
+  it("the main + button still calls onNew (not onNewFromTemplate)", async () => {
+    const onNew = vi.fn();
+    render(<NoteList {...defaultProps} onNew={onNew} onNewFromTemplate={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: /^new note$/i }));
+    expect(onNew).toHaveBeenCalledOnce();
   });
 });
 

@@ -42,6 +42,15 @@ export default function NotesPage() {
     setSelectedId(note.id);
   }, [createNote, clearFilters]);
 
+  const handleNewFromTemplate = useCallback(
+    async (initial: { title: string; content: string }) => {
+      const note = await createNote(initial);
+      clearFilters();
+      setSelectedId(note.id);
+    },
+    [createNote, clearFilters]
+  );
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.ctrlKey || e.metaKey)) return;
@@ -97,6 +106,7 @@ export default function NotesPage() {
             onShowPinnedOnlyChange={setShowPinnedOnly}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearFilters}
+            onNewFromTemplate={handleNewFromTemplate}
             searchRef={searchRef}
           />
         )}
