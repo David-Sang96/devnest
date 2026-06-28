@@ -162,7 +162,7 @@ export function Sidebar() {
             if (collapsed) {
               return (
                 <Tooltip key={href}>
-                  <TooltipTrigger asChild>{linkEl}</TooltipTrigger>
+                  <TooltipTrigger render={linkEl} />
                   <TooltipContent side="right">{label}</TooltipContent>
                 </Tooltip>
               );
@@ -181,19 +181,21 @@ export function Sidebar() {
           {/* Settings */}
           {collapsed ? (
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  href="/settings"
-                  className={cn(
-                    "relative flex items-center justify-center p-2 rounded-md text-sm font-medium transition-colors",
-                    isActive("/settings")
-                      ? "bg-primary text-primary-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <Settings className="size-4 shrink-0" />
-                </Link>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Link
+                    href="/settings"
+                    className={cn(
+                      "relative flex items-center justify-center p-2 rounded-md text-sm font-medium transition-colors",
+                      isActive("/settings")
+                        ? "bg-primary text-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    )}
+                  >
+                    <Settings className="size-4 shrink-0" />
+                  </Link>
+                }
+              />
               <TooltipContent side="right">Settings</TooltipContent>
             </Tooltip>
           ) : (

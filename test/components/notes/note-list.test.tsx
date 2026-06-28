@@ -14,6 +14,7 @@ const defaultProps = {
   selectedId: null,
   onSelect: () => {},
   onNew: () => {},
+  onNewFromTemplate: () => {},
   onDelete: () => {},
   onTogglePin: () => {},
   searchQuery: "",
