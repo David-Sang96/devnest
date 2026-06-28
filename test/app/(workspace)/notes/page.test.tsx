@@ -7,10 +7,18 @@ import type { SortOrder, DateFilter } from "@/types/notes";
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 const mockCreateNote = vi.fn().mockResolvedValue({ id: "new-note-id" } as Note);
-const mockReplace = vi.fn();
+
+let newParamValue: string | null = null;
+
+// mockReplace simulates real router: when navigating to /notes (no ?new=1),
+// clear the param so the effect doesn't re-trigger on subsequent renders.
+const mockReplace = vi.fn((url: string) => {
+  if (url === "/notes") newParamValue = null;
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace }),
+  useSearchParams: () => ({ get: (key: string) => key === "new" ? newParamValue : null }),
 }));
 
 vi.mock("@/hooks/use-notes", () => ({
@@ -64,12 +72,16 @@ vi.mock("motion/react", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubGlobal("location", { search: "" });
+  newParamValue = null;
+  // Restore mockReplace's side-effect behaviour after clearAllMocks resets the impl
+  mockReplace.mockImplementation((url: string) => {
+    if (url === "/notes") newParamValue = null;
+  });
 });
 
 describe("NotesPage — ?new=1 param", () => {
   it("calls createNote and router.replace('/notes') when ?new=1 is present", async () => {
-    vi.stubGlobal("location", { search: "?new=1" });
+    newParamValue = "1";
     render(<NotesPage />);
     await waitFor(() => {
       expect(mockCreateNote).toHaveBeenCalled();
@@ -78,9 +90,27 @@ describe("NotesPage — ?new=1 param", () => {
   });
 
   it("does not call createNote when ?new=1 is absent", async () => {
+    newParamValue = null;
     render(<NotesPage />);
     // Wait a tick to allow any effects to fire
     await waitFor(() => {}, { timeout: 50 });
     expect(mockCreateNote).not.toHaveBeenCalled();
+  });
+
+  it("calls createNote when ?new=1 appears on already-mounted page (re-render)", async () => {
+    newParamValue = null;
+    const { rerender } = render(<NotesPage />);
+    // Confirm param is absent and no note created yet
+    await waitFor(() => {}, { timeout: 50 });
+    expect(mockCreateNote).not.toHaveBeenCalled();
+
+    // Simulate same-page navigation that adds ?new=1 without remounting
+    newParamValue = "1";
+    rerender(<NotesPage />);
+
+    await waitFor(() => {
+      expect(mockCreateNote).toHaveBeenCalled();
+    });
+    expect(mockReplace).toHaveBeenCalledWith("/notes");
   });
 });

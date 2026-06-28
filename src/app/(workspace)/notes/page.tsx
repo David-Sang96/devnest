@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useNotes } from "@/hooks/use-notes";
@@ -11,7 +11,7 @@ import { NoteEditor } from "@/components/notes/note-editor";
 import { NoteEmptyState } from "@/components/notes/note-empty-state";
 import { Loader2 } from "lucide-react";
 
-export default function NotesPage() {
+function NotesPageContent() {
   const {
     notes, trashedNotes, isLoading,
     createNote, updateNote, removeNote,
@@ -19,6 +19,7 @@ export default function NotesPage() {
     togglePin,
   } = useNotes();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     filteredNotes,
     searchQuery, setSearchQuery,
@@ -40,13 +41,12 @@ export default function NotesPage() {
 
   // Auto-create note when navigated here via ?new=1 from the command palette
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("new") === "1") {
+    if (searchParams.get("new") === "1") {
       handleNew();
       router.replace("/notes");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   const handleNew = useCallback(async () => {
     const note = await createNote();
@@ -140,5 +140,13 @@ export default function NotesPage() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function NotesPage() {
+  return (
+    <Suspense>
+      <NotesPageContent />
+    </Suspense>
   );
 }

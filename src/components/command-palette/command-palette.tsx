@@ -99,7 +99,9 @@ export function CommandPalette() {
 
   // Auto-focus input when palette opens
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+    if (!open) return;
+    const id = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(id);
   }, [open]);
 
   // Global Ctrl+K / Cmd+K
@@ -204,7 +206,7 @@ export function CommandPalette() {
             {/* Notes group */}
             {noteCount > 0 && (
               <>
-                <li className="px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <li role="presentation" className="px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Notes
                 </li>
                 {filteredNotes.slice(0, 5).map((note, i) => (
@@ -235,6 +237,7 @@ export function CommandPalette() {
             {cardCount > 0 && (
               <>
                 <li
+                  role="presentation"
                   className={cn(
                     "px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground",
                     noteCount > 0 && "mt-1"
@@ -273,6 +276,7 @@ export function CommandPalette() {
             {filteredCommands.length > 0 && (
               <>
                 <li
+                  role="presentation"
                   className={cn(
                     "px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground",
                     (noteCount > 0 || cardCount > 0) && "mt-1"
