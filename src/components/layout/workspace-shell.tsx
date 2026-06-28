@@ -1,6 +1,7 @@
 import { Sidebar } from "./sidebar";
 import { MobileNav } from "./mobile-nav";
 import { PageTransition } from "./page-transition";
+import { CommandPalette } from "@/components/command-palette/command-palette";
 
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
         <PageTransition>{children}</PageTransition>
       </main>
       <MobileNav />
+      <CommandPalette />
     </div>
   );
 }

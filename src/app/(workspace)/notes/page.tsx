@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useNotes } from "@/hooks/use-notes";
@@ -17,6 +18,7 @@ export default function NotesPage() {
     restoreFromTrash, permanentlyDelete, emptyTrash,
     togglePin,
   } = useNotes();
+  const router = useRouter();
   const {
     filteredNotes,
     searchQuery, setSearchQuery,
@@ -35,6 +37,16 @@ export default function NotesPage() {
       setSelectedId(null);
     }
   }, [filteredNotes, selectedId]);
+
+  // Auto-create note when navigated here via ?new=1 from the command palette
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("new") === "1") {
+      handleNew();
+      router.replace("/notes");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleNew = useCallback(async () => {
     const note = await createNote();
@@ -57,10 +69,6 @@ export default function NotesPage() {
       if (e.key === "n") {
         e.preventDefault();
         handleNew();
-      } else if (e.key === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-        searchRef.current?.select();
       }
     }
     document.addEventListener("keydown", onKeyDown);
