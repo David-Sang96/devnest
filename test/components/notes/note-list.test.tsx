@@ -26,6 +26,10 @@ const defaultProps = {
   onShowPinnedOnlyChange: () => {},
   hasActiveFilters: false,
   onClearFilters: () => {},
+  trashedNotes: [],
+  onRestoreFromTrash: () => {},
+  onPermanentlyDelete: () => {},
+  onEmptyTrash: () => {},
 };
 
 describe("<NoteList />", () => {
@@ -197,5 +201,75 @@ describe("<NoteList />", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: /clear filters/i }));
     expect(onClearFilters).toHaveBeenCalledOnce();
+  });
+});
+
+// ── trash ──────────────────────────────────────────────────────────────────
+
+describe("trash mode", () => {
+  const trashProps = {
+    ...defaultProps,
+    trashedNotes: [],
+    onRestoreFromTrash: vi.fn(),
+    onPermanentlyDelete: vi.fn(),
+    onEmptyTrash: vi.fn(),
+  };
+
+  it("renders a 'Trash' toggle button", () => {
+    render(<NoteList {...trashProps} />);
+    expect(screen.getByRole("button", { name: /trash/i })).toBeInTheDocument();
+  });
+
+  it("shows trash count badge when trashedNotes is non-empty", () => {
+    const trashed = [makeNote("t1", "Deleted")];
+    render(<NoteList {...trashProps} trashedNotes={trashed} />);
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
+
+  it("entering trash mode shows trashed notes", async () => {
+    const trashed = [makeNote("t1", "Trashed Note")];
+    render(<NoteList {...trashProps} trashedNotes={trashed} />);
+    await userEvent.click(screen.getByRole("button", { name: /trash/i }));
+    expect(screen.getByText("Trashed Note")).toBeInTheDocument();
+  });
+
+  it("entering trash mode shows 'Empty Trash' button when trash has items", async () => {
+    const trashed = [makeNote("t1", "Trashed Note")];
+    render(<NoteList {...trashProps} trashedNotes={trashed} />);
+    await userEvent.click(screen.getByRole("button", { name: /trash/i }));
+    expect(screen.getByRole("button", { name: /empty trash/i })).toBeInTheDocument();
+  });
+
+  it("calls onEmptyTrash when 'Empty Trash' is clicked", async () => {
+    const onEmptyTrash = vi.fn();
+    const trashed = [makeNote("t1", "Trashed Note")];
+    render(<NoteList {...trashProps} trashedNotes={trashed} onEmptyTrash={onEmptyTrash} />);
+    await userEvent.click(screen.getByRole("button", { name: /trash/i }));
+    await userEvent.click(screen.getByRole("button", { name: /empty trash/i }));
+    expect(onEmptyTrash).toHaveBeenCalledOnce();
+  });
+
+  it("calls onRestoreFromTrash with note id when Restore is clicked", async () => {
+    const onRestoreFromTrash = vi.fn();
+    const trashed = [makeNote("t1", "Trashed Note")];
+    render(<NoteList {...trashProps} trashedNotes={trashed} onRestoreFromTrash={onRestoreFromTrash} />);
+    await userEvent.click(screen.getByRole("button", { name: /trash/i }));
+    await userEvent.click(screen.getByRole("button", { name: /restore/i }));
+    expect(onRestoreFromTrash).toHaveBeenCalledWith("t1");
+  });
+
+  it("calls onPermanentlyDelete with note id when Delete forever is clicked", async () => {
+    const onPermanentlyDelete = vi.fn();
+    const trashed = [makeNote("t1", "Trashed Note")];
+    render(<NoteList {...trashProps} trashedNotes={trashed} onPermanentlyDelete={onPermanentlyDelete} />);
+    await userEvent.click(screen.getByRole("button", { name: /trash/i }));
+    await userEvent.click(screen.getByRole("button", { name: /delete forever/i }));
+    expect(onPermanentlyDelete).toHaveBeenCalledWith("t1");
+  });
+
+  it("shows 'Trash is empty' when in trash mode with no trashed notes", async () => {
+    render(<NoteList {...trashProps} trashedNotes={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: /trash/i }));
+    expect(screen.getByText(/trash is empty/i)).toBeInTheDocument();
   });
 });
