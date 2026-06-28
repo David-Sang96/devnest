@@ -122,6 +122,26 @@ describe("useNotes()", () => {
     expect(mockDB.put).toHaveBeenCalledWith("notes", expect.objectContaining({ title: "Untitled" }));
   });
 
+  it("createNote() with initial title and content creates note with those values", async () => {
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toBeDefined());
+
+    let created!: Note;
+    await act(async () => {
+      created = await result.current.createNote({
+        title: "Meeting Notes",
+        content: '{"type":"doc","content":[]}',
+      });
+    });
+
+    expect(created.title).toBe("Meeting Notes");
+    expect(created.content).toBe('{"type":"doc","content":[]}');
+    expect(mockDB.put).toHaveBeenCalledWith(
+      "notes",
+      expect.objectContaining({ title: "Meeting Notes" })
+    );
+  });
+
   it("createNote() multiple times yields multiple notes", async () => {
     const { result } = renderHook(() => useNotes());
     await waitFor(() => expect(result.current.notes).toBeDefined());
